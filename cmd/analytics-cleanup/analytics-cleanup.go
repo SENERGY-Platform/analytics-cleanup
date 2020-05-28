@@ -68,8 +68,8 @@ func main() {
 		lib.GetEnv("KEYCLOAK_CLIENT_ID", "test"),
 		lib.GetEnv("KEYCLOAK_CLIENT_SECRET", "test"),
 		lib.GetEnv("KEYCLOAK_REALM", "test"),
-		lib.GetEnv("USER", "test"),
-		lib.GetEnv("PW", "test"),
+		lib.GetEnv("KEYCLOAK_USER", "test"),
+		lib.GetEnv("KEYCLOAK_PW", "test"),
 	)
 
 	if lib.GetEnv("CRON_SCHEDULE", "* * * * *") == "false" {
