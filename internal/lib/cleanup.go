@@ -51,7 +51,7 @@ func (cs CleanupService) StartCleanupService() {
 		}
 		services, err := cs.driver.GetServices("pipelines")
 		if err != nil {
-			log.Fatal("GetServices failed: " + err.Error())
+			log.Fatal("GetServices for pipelines failed: " + err.Error())
 		}
 		cs.checkPipelineServices(pipes, services)
 		cs.checkPipes(services, pipes)
@@ -66,7 +66,7 @@ func (cs CleanupService) StartCleanupService() {
 		}
 		services, err = cs.driver.GetServices("serving")
 		if err != nil {
-			log.Fatal("GetServices failed: " + err.Error())
+			log.Fatal("GetServices for serving instances failed: " + err.Error())
 		}
 		cs.checkServingServices(servings, services)
 		cs.checkServings(services, servings)
