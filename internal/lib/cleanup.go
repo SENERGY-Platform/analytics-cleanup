@@ -17,6 +17,9 @@
 package lib
 
 import (
+	"fmt"
+	_ "github.com/influxdata/influxdb1-client"
+	influxClient "github.com/influxdata/influxdb1-client/v2"
 	"log"
 	"strings"
 )
@@ -27,10 +30,20 @@ type CleanupService struct {
 	pipeline PipelineService
 	serving  ServingService
 	logger   Logger
+	influx   influxClient.Client
 }
 
 func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline PipelineService, serving ServingService, logger Logger) *CleanupService {
-	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, serving: serving, logger: logger}
+	c, err := influxClient.NewHTTPClient(influxClient.HTTPConfig{
+		Addr:     "http://" + GetEnv("INFLUX_DB_HOST", "") + ":" + GetEnv("INFLUX_DB_PORT", "8086"),
+		Username: GetEnv("INFLUX_DB_USERNAME", "root"),
+		Password: GetEnv("INFLUX_DB_PASSWORD", ""),
+	})
+	if err != nil {
+		log.Fatal("could not connect to influx instance: " + err.Error())
+	}
+	defer c.Close()
+	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, serving: serving, logger: logger, influx: c}
 }
 
 func (cs CleanupService) StartCleanupService() {
@@ -68,8 +81,38 @@ func (cs CleanupService) StartCleanupService() {
 		if err != nil {
 			log.Fatal("GetServices for serving instances failed: " + err.Error())
 		}
+
+		influxData, err := cs.getInfluxData()
+		if err != nil {
+			log.Fatal("Get Influx data for serving instances failed: " + err.Error())
+		}
+
 		cs.checkServingServices(servings, services)
 		cs.checkServings(services, servings)
+		cs.checkInfluxMeasurements(influxData, servings)
+	}
+}
+
+func (cs CleanupService) checkInfluxMeasurements(influxData map[string][]string, servings []ServingInstance) {
+	cs.logger.Print("********************************************************")
+	cs.logger.Print("**************** Orphaned Measurements *****************")
+	cs.logger.Print("********************************************************")
+	for db, measurements := range influxData {
+		for _, measurement := range measurements {
+			if !influxMeasurementInServings(measurement, servings) {
+				cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+				cs.logger.Print(db + ":" + measurement)
+				q := influxClient.NewQuery("DROP MEASUREMENT "+"\""+measurement+"\"", db, "")
+				response, err := cs.influx.Query(q)
+				if err != nil {
+					log.Fatal("could not delete measurement: " + err.Error())
+				}
+				if response.Error() != nil {
+					err = response.Error()
+					log.Fatal("could not delete measurement: " + err.Error())
+				}
+			}
+		}
 	}
 }
 
@@ -124,7 +167,7 @@ func (cs CleanupService) checkPipes(services []Service, pipes []Pipeline) {
 
 func (cs CleanupService) checkServingServices(serving []ServingInstance, services []Service) {
 	cs.logger.Print("********************************************************")
-	cs.logger.Print("**************** Orphaned Servings ********************")
+	cs.logger.Print("**************** Orphaned Servings *********************")
 	cs.logger.Print("********************************************************")
 	for _, serving := range serving {
 		if !servingInServices(serving, services) {
@@ -153,7 +196,7 @@ func (cs CleanupService) checkServings(services []Service, servings []ServingIns
 	cs.logger.Print("************** Orphaned Serving Services ***************")
 	cs.logger.Print("********************************************************")
 	for _, service := range services {
-		if !stringInSlice(service.Name, []string{"influxdb", "influx-auth", "serving-lb", "grafana"}) {
+		if strings.Contains(service.Name, "kafka-influx") || strings.Contains(service.Name, "kafka2influx") {
 			if !serviceInServings(service, servings) {
 				cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 				cs.logger.Print(service.Name)
@@ -203,6 +246,53 @@ func serviceInServings(service Service, servings []ServingInstance) bool {
 		}
 	}
 	return false
+}
+
+func influxMeasurementInServings(measurement string, servings []ServingInstance) bool {
+	for _, serving := range servings {
+		if measurement == serving.Measurement {
+			return true
+		}
+	}
+	return false
+}
+
+func (cs CleanupService) getInfluxData() (influxDbs map[string][]string, err error) {
+	q := influxClient.NewQuery("SHOW DATABASES", "", "")
+	response, err := cs.influx.Query(q)
+	if err != nil {
+		return
+	}
+	if response.Error() != nil {
+		err = response.Error()
+		return
+	}
+	influxDbs = make(map[string][]string)
+	for _, val := range response.Results[0].Series[0].Values {
+		str := fmt.Sprint(val)
+		influxDbs[strings.Replace(strings.Replace(str, "]", "", -1), "[", "", -1)] = []string{}
+	}
+	for db, _ := range influxDbs {
+		if db != "_internal" {
+			q := influxClient.NewQuery("SHOW MEASUREMENTS", db, "")
+			response, err = cs.influx.Query(q)
+			if err != nil {
+				return
+			}
+			if response.Error() != nil {
+				err = response.Error()
+				return
+			}
+
+			if len(response.Results[0].Series) > 0 {
+				for _, measurement := range response.Results[0].Series[0].Values {
+					influxDbs[db] = append(influxDbs[db], measurement[0].(string))
+				}
+			}
+
+		}
+	}
+	return influxDbs, err
 }
 
 func (cs *CleanupService) create(serving ServingInstance) {
