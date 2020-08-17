@@ -19,6 +19,5 @@ package lib
 type Driver interface {
 	GetServices(collection string) (services []Service, err error)
 	DeleteService(id string, collection string) error
-	GetOperatorName(pipelineId string, operator Operator) string
 	CreateServingInstance(instance *ServingInstance, dataFields string) string
 }

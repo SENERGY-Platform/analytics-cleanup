@@ -135,10 +135,6 @@ func (r *Rancher2) DeleteService(serviceId string, collection string) (err error
 	return
 }
 
-func (r *Rancher2) GetOperatorName(pipelineId string, operator lib.Operator) string {
-	return "operator-" + pipelineId + "-" + operator.Id[0:8]
-}
-
 func (r *Rancher2) getServingInstanceName(name string) string {
 	return "kafka2influx-" + name
 }

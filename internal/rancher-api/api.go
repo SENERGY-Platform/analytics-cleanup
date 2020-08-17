@@ -132,10 +132,6 @@ func (r Rancher) DeleteService(serviceName string, collection string) (err error
 	return
 }
 
-func (r Rancher) GetOperatorName(pipelineId string, operator lib.Operator) string {
-	return "v2-" + pipelineId + "-" + operator.Id[0:8]
-}
-
 func (r Rancher) getServiceByName(name string) (service Service, err error) {
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey)
 	resp, body, errs := request.Get(r.url + "services/?name=" + name).End()
