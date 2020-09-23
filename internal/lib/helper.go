@@ -17,8 +17,8 @@
 package lib
 
 import (
-	"os"
 	"encoding/json"
+	"os"
 )
 
 func GetEnv(key, fallback string) string {
@@ -29,7 +29,7 @@ func GetEnv(key, fallback string) string {
 	return value
 }
 
-func ToJson(resp string) map[string]interface{}{
+func ToJson(resp string) map[string]interface{} {
 	data := map[string]interface{}{}
 	json.Unmarshal([]byte(resp), &data)
 	return data
@@ -38,6 +38,15 @@ func ToJson(resp string) map[string]interface{}{
 func IntInSlice(a int, list []int) bool {
 	for _, b := range list {
 		if b == a {
+			return true
+		}
+	}
+	return false
+}
+
+func StringInSlice(str string, slice []string) bool {
+	for _, s := range slice {
+		if str == s {
 			return true
 		}
 	}

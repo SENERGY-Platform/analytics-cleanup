@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SENERGY-Platform/analytics-cleanup/internal/lib"
+	uuid "github.com/satori/go.uuid"
 	"net/http"
 
 	"github.com/parnurzeal/gorequest"
@@ -43,7 +44,7 @@ func NewRancher2(url string, accessKey string, secretKey string, servingNamespac
 
 func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFields string) string {
 	env := map[string]string{
-		"KAFKA_GROUP_ID":      "transfer-" + instance.ID.String(),
+		"KAFKA_GROUP_ID":      "transfer-" + uuid.NewV4().String(),
 		"KAFKA_BOOTSTRAP":     lib.GetEnv("KAFKA_BOOTSTRAP", "broker.kafka.rancher.internal:9092"),
 		"KAFKA_TOPIC":         instance.Topic,
 		"DATA_MEASUREMENT":    instance.Measurement,
@@ -51,15 +52,15 @@ func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFiel
 		"DATA_TIME_MAPPING":   instance.TimePath,
 		"DATA_FILTER_ID":      instance.Filter,
 		"INFLUX_DB":           instance.Database,
-		"INFLUX_HOST":         lib.GetEnv("INFLUX_DB_HOST", "influxdb"),
+		"INFLUX_HOST":         "serving-db.influx",
 		"INFLUX_PORT":         lib.GetEnv("INFLUX_DB_PORT", "8086"),
 		"INFLUX_USER":         lib.GetEnv("INFLUX_DB_USER", "root"),
 		"INFLUX_PW":           lib.GetEnv("INFLUX_DB_PASSWORD", ""),
 		"OFFSET_RESET":        instance.Offset,
 	}
 
-	if instance.FilterType == "pipeId" {
-		env["DATA_FILTER_ID_MAPPING"] = "pipeline_id"
+	if instance.FilterType == "operatorId" {
+		env["DATA_FILTER_ID_MAPPING"] = "operator_id"
 	}
 
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})

@@ -30,20 +30,12 @@ type CleanupService struct {
 	pipeline PipelineService
 	serving  ServingService
 	logger   Logger
-	influx   influxClient.Client
+	influx   *Influx
 }
 
 func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline PipelineService, serving ServingService, logger Logger) *CleanupService {
-	c, err := influxClient.NewHTTPClient(influxClient.HTTPConfig{
-		Addr:     "http://" + GetEnv("INFLUX_DB_HOST", "") + ":" + GetEnv("INFLUX_DB_PORT", "8086"),
-		Username: GetEnv("INFLUX_DB_USERNAME", "root"),
-		Password: GetEnv("INFLUX_DB_PASSWORD", ""),
-	})
-	if err != nil {
-		log.Fatal("could not connect to influx instance: " + err.Error())
-	}
-	defer c.Close()
-	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, serving: serving, logger: logger, influx: c}
+	influx := NewInflux()
+	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, serving: serving, logger: logger, influx: influx}
 }
 
 func (cs CleanupService) StartCleanupService() {
@@ -86,7 +78,7 @@ func (cs CleanupService) StartCleanupService() {
 		if err != nil {
 			log.Fatal("Get Influx data for serving instances failed: " + err.Error())
 		}
-
+		//cs.recreateServingServices(servings, services)
 		cs.checkServingServices(servings, services)
 		cs.checkServings(services, servings)
 		cs.checkInfluxMeasurements(influxData, servings)
@@ -102,14 +94,9 @@ func (cs CleanupService) checkInfluxMeasurements(influxData map[string][]string,
 			if !influxMeasurementInServings(measurement, servings) {
 				cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 				cs.logger.Print(db + ":" + measurement)
-				q := influxClient.NewQuery("DROP MEASUREMENT "+"\""+measurement+"\"", db, "")
-				response, err := cs.influx.Query(q)
-				if err != nil {
-					log.Fatal("could not delete measurement: " + err.Error())
-				}
-				if response.Error() != nil {
-					err = response.Error()
-					log.Fatal("could not delete measurement: " + err.Error())
+				errors := cs.influx.DropMeasurement(measurement, db)
+				if len(errors) > 0 {
+					log.Fatal("could not delete measurement: " + errors[0].Error())
 				}
 			}
 		}
@@ -181,7 +168,6 @@ func (cs CleanupService) checkServingServices(serving []ServingInstance, service
 			if user != nil {
 				cs.logger.Print(*user.Username)
 			}
-			//cs.create(serving)
 			err = cs.serving.DeleteServingService(serving.ID.String(), serving.UserId, cs.keycloak.GetAccessToken())
 			if err != nil {
 				log.Fatal("DeleteServingService failed:" + err.Error())
@@ -259,7 +245,7 @@ func influxMeasurementInServings(measurement string, servings []ServingInstance)
 
 func (cs CleanupService) getInfluxData() (influxDbs map[string][]string, err error) {
 	q := influxClient.NewQuery("SHOW DATABASES", "", "")
-	response, err := cs.influx.Query(q)
+	response, err := cs.influx.client.Query(q)
 	if err != nil {
 		return
 	}
@@ -275,7 +261,7 @@ func (cs CleanupService) getInfluxData() (influxDbs map[string][]string, err err
 	for db, _ := range influxDbs {
 		if db != "_internal" {
 			q := influxClient.NewQuery("SHOW MEASUREMENTS", db, "")
-			response, err = cs.influx.Query(q)
+			response, err = cs.influx.client.Query(q)
 			if err != nil {
 				return
 			}
@@ -295,6 +281,31 @@ func (cs CleanupService) getInfluxData() (influxDbs map[string][]string, err err
 	return influxDbs, err
 }
 
+func (cs CleanupService) recreateServingServices(serving []ServingInstance, services []Service) {
+	cs.logger.Print("********************************************************")
+	cs.logger.Print("**************** Recreate Servings *********************")
+	cs.logger.Print("********************************************************")
+	for _, serving := range serving {
+		if !servingInServices(serving, services) {
+			cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+			cs.logger.Print(serving.ID)
+			cs.logger.Print(serving.Name)
+			user, err := cs.keycloak.GetUserByID(serving.UserId)
+			if err != nil {
+				log.Fatal("GetUserByID failed:" + err.Error())
+			}
+			if user != nil {
+				cs.logger.Print(*user.Username)
+			}
+			if GetEnv("FORCE_DELETE", "") != "" && serving.Database == GetEnv("FORCE_DELETE", "") {
+				cs.influx.forceDeleteMeasurement(serving)
+			}
+			cs.create(serving)
+		}
+
+	}
+}
+
 func (cs *CleanupService) create(serving ServingInstance) {
 	dataFields := "{"
 	for index, value := range serving.Values {
@@ -305,13 +316,4 @@ func (cs *CleanupService) create(serving ServingInstance) {
 	}
 	dataFields = dataFields + "}"
 	cs.driver.CreateServingInstance(&serving, dataFields)
-}
-
-func stringInSlice(a string, list []string) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
 }
