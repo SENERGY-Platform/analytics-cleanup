@@ -47,11 +47,9 @@ func (s *ServingService) DeleteServingService(id string, userId string, accessTo
 	request := gorequest.New()
 	resp, _, e := request.Delete(s.url+"/admin/instance/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
 	if resp.StatusCode != 204 {
-		fmt.Println("could not access serving serving: "+strconv.Itoa(resp.StatusCode), resp.Body)
-		err = errors.New("could not access serving serving")
+		err = errors.New("could not delete serving serving: " + strconv.Itoa(resp.StatusCode))
 	}
 	if len(e) > 0 {
-		fmt.Println("something went wrong", e)
 		err = errors.New("could not get service from serving service")
 	}
 	return

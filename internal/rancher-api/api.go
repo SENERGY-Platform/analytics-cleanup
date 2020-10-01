@@ -102,10 +102,7 @@ func (r Rancher) GetServices(collection string) (services []lib.Service, err err
 	}
 	var serviceCollection = ServiceCollection{}
 	err = json.Unmarshal([]byte(body), &serviceCollection)
-	if len(serviceCollection.Data) < 1 {
-		err = errors.New("could not find services")
-		return
-	} else {
+	if len(serviceCollection.Data) > 0 {
 		for _, service := range serviceCollection.Data {
 			services = append(services, lib.Service{
 				Id:          service.Id,
