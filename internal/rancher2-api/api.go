@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SENERGY-Platform/analytics-cleanup/internal/lib"
-	uuid "github.com/satori/go.uuid"
 	"net/http"
 
 	"github.com/parnurzeal/gorequest"
@@ -44,7 +43,7 @@ func NewRancher2(url string, accessKey string, secretKey string, servingNamespac
 
 func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFields string) string {
 	env := map[string]string{
-		"KAFKA_GROUP_ID":      "transfer-" + uuid.NewV4().String(),
+		"KAFKA_GROUP_ID":      "transfer-" + instance.ID.String(),
 		"KAFKA_BOOTSTRAP":     lib.GetEnv("KAFKA_BOOTSTRAP", "broker.kafka.rancher.internal:9092"),
 		"KAFKA_TOPIC":         instance.Topic,
 		"DATA_MEASUREMENT":    instance.Measurement,
