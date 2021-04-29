@@ -5,7 +5,7 @@ WORKDIR /go/src/app
 
 ENV GO111MODULE=on
 
-RUN make build
+RUN CGO_ENABLED=0 GOOS=linux make build
 
 RUN git log -1 --oneline > version.txt
 
