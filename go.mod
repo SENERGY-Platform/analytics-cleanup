@@ -1,6 +1,6 @@
 module github.com/SENERGY-Platform/analytics-cleanup
 
-go 1.14
+go 1.16
 
 require (
 	github.com/Nerzal/gocloak/v5 v5.0.1

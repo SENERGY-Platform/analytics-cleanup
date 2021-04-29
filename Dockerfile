@@ -1,8 +1,17 @@
-FROM golang:1.14
+FROM golang:1.16 AS builder
 
-COPY . /go/src/analytics-cleanup
-WORKDIR /go/src/analytics-cleanup
+COPY . /go/src/app
+WORKDIR /go/src/app
+
+ENV GO111MODULE=on
 
 RUN make build
 
-CMD ./analytics-cleanup
+RUN git log -1 --oneline > version.txt
+
+FROM alpine:latest
+WORKDIR /root/
+COPY --from=builder /go/src/app/analytics-cleanup .
+COPY --from=builder /go/src/app/version.txt .
+
+ENTRYPOINT ["./analytics-cleanup"]
