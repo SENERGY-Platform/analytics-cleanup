@@ -17,7 +17,9 @@
 package lib
 
 type Driver interface {
+	GetServices(collection string) (services []Service, err error)
 	GetWorkloads(collection string) (workloads []Workload, err error)
+	DeleteWorkload(id string, collection string) error
 	DeleteService(id string, collection string) error
 	CreateServingInstance(instance *ServingInstance, dataFields string) string
 }

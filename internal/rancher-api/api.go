@@ -89,6 +89,10 @@ func (r Rancher) CreateServingInstance(instance *lib.ServingInstance, dataFields
 	return data["id"].(string)
 }
 
+func (r Rancher) GetServices(collection string) (services []lib.Service, err error) {
+	return
+}
+
 func (r Rancher) GetWorkloads(collection string) (services []lib.Workload, err error) {
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey)
 	req := request.Get(r.url + "stacks/" + r.pipelinesStackId + "/services")
@@ -116,7 +120,7 @@ func (r Rancher) GetWorkloads(collection string) (services []lib.Workload, err e
 	return
 }
 
-func (r Rancher) DeleteService(serviceName string, collection string) (err error) {
+func (r Rancher) DeleteWorkload(serviceName string, collection string) (err error) {
 	service, err := r.getServiceByName(serviceName)
 	if err != nil {
 		return
@@ -126,6 +130,10 @@ func (r Rancher) DeleteService(serviceName string, collection string) (err error
 	if resp.StatusCode != http.StatusOK {
 		err = errors.New("could not delete operator: " + body)
 	}
+	return
+}
+
+func (r Rancher) DeleteService(serviceName string, collection string) (err error) {
 	return
 }
 

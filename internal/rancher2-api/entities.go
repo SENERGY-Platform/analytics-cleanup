@@ -64,3 +64,14 @@ type Workload struct {
 	Labels     map[string]string `json:"labels,omitempty"`
 	Containers []Container       `json:"containers,omitempty"`
 }
+
+type ServiceCollection struct {
+	Data []Service `json:"data"`
+}
+
+type Service struct {
+	Id                string   `json:"id,omitempty"`
+	Name              string   `json:"name,omitempty"`
+	BaseType          string   `json:"baseType,omitempty"`
+	TargetWorkloadIds []string `json:"targetWorkloadIds,omitempty"`
+}

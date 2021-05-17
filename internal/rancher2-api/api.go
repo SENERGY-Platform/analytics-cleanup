@@ -86,6 +86,36 @@ func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFiel
 	return ""
 }
 
+func (r *Rancher2) GetServices(collection string) (services []lib.Service, err error) {
+	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	request.Get(r.url + "projects/" + r.pipeProjectId + "/services/?limit=2000&namespaceId=" + r.pipeNamespaceId)
+	if collection == "serving" {
+		request.Get(r.url + "projects/" + r.servingProjectId + "/services/?limit=2000&namespaceId=" + r.servingNamespaceId)
+	}
+	resp, body, e := request.End()
+	if resp.StatusCode != http.StatusOK {
+		err = errors.New("could not get services: ")
+		return
+	}
+	if len(e) > 0 {
+		err = errors.New("something went wrong")
+		return
+	}
+	var serviceCollection = ServiceCollection{}
+	err = json.Unmarshal([]byte(body), &serviceCollection)
+	if len(serviceCollection.Data) > 1 {
+		for _, service := range serviceCollection.Data {
+			services = append(services, lib.Service{
+				Id:                service.Id,
+				Name:              service.Name,
+				BaseType:          service.BaseType,
+				TargetWorkloadIds: service.TargetWorkloadIds,
+			})
+		}
+	}
+	return
+}
+
 func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, err error) {
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	request.Get(r.url + "projects/" + r.pipeProjectId + "/workloads/?namespaceId=" + r.pipeNamespaceId)
@@ -117,15 +147,33 @@ func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, er
 	return
 }
 
-func (r *Rancher2) DeleteService(serviceId string, collection string) (err error) {
+func (r *Rancher2) DeleteWorkload(workloadId string, collection string) (err error) {
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
-	request.Delete(r.url + "projects/" + r.pipeProjectId + "/workloads/deployment:" + r.pipeNamespaceId + ":" + serviceId)
+	request.Delete(r.url + "projects/" + r.pipeProjectId + "/workloads/deployment:" + r.pipeNamespaceId + ":" + workloadId)
 	if collection == "serving" {
-		request.Delete(r.url + "projects/" + r.servingProjectId + "/workloads/deployment:" + r.servingNamespaceId + ":" + serviceId)
+		request.Delete(r.url + "projects/" + r.servingProjectId + "/workloads/deployment:" + r.servingNamespaceId + ":" + workloadId)
 	}
 	resp, body, e := request.End()
 	if resp.StatusCode != http.StatusNoContent {
 		err = errors.New("could not delete operator: " + body)
+		return
+	}
+	if len(e) > 0 {
+		err = errors.New("something went wrong")
+		return
+	}
+	return
+}
+
+func (r *Rancher2) DeleteService(serviceId string, collection string) (err error) {
+	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	request.Delete(r.url + "project/" + r.pipeProjectId + "/services/" + serviceId)
+	if collection == "serving" {
+		request.Delete(r.url + "project/" + r.servingProjectId + "/services/" + serviceId)
+	}
+	resp, body, e := request.End()
+	if resp.StatusCode != http.StatusNoContent {
+		err = errors.New("could not delete service: " + body)
 		return
 	}
 	if len(e) > 0 {

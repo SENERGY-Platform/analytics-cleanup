@@ -22,7 +22,7 @@ import (
 	"strings"
 )
 
-func pipeInServices(pipe Pipeline, workloads []Workload) bool {
+func pipeInWorkloads(pipe Pipeline, workloads []Workload) bool {
 	for _, workload := range workloads {
 		if strings.Contains(workload.Name, pipe.Id) {
 			return true
@@ -31,7 +31,7 @@ func pipeInServices(pipe Pipeline, workloads []Workload) bool {
 	return false
 }
 
-func serviceInPipes(workload Workload, pipes []Pipeline) bool {
+func workloadInPipes(workload Workload, pipes []Pipeline) bool {
 	for _, pipe := range pipes {
 		if strings.Contains(workload.Name, pipe.Id) {
 			return true
@@ -40,7 +40,7 @@ func serviceInPipes(workload Workload, pipes []Pipeline) bool {
 	return false
 }
 
-func servingInServices(serving ServingInstance, workloads []Workload) bool {
+func servingInWorkloads(serving ServingInstance, workloads []Workload) bool {
 	for _, workload := range workloads {
 		if strings.Contains(workload.Name, serving.ID.String()) {
 			return true
@@ -49,9 +49,19 @@ func servingInServices(serving ServingInstance, workloads []Workload) bool {
 	return false
 }
 
-func serviceInServings(workload Workload, servings []ServingInstance) bool {
+func workloadInServings(workload Workload, servings []ServingInstance) bool {
 	for _, serving := range servings {
 		if strings.Contains(workload.Name, serving.ID.String()) {
+			return true
+		}
+	}
+	return false
+}
+
+func serviceInWorkloads(service Service, workloads []Workload) bool {
+	ws := strings.Split(service.TargetWorkloadIds[0], ":")
+	for _, workload := range workloads {
+		if workload.Name == ws[2] {
 			return true
 		}
 	}
@@ -97,4 +107,10 @@ func StringInSlice(str string, slice []string) bool {
 		}
 	}
 	return false
+}
+
+func removeFromSlice(a []struct{}, i int) {
+	copy(a[i:], a[i+1:])     // Shift a[i+1:] left one index.
+	a[len(a)-1] = struct{}{} // Erase last element (write zero value).
+	a = a[:len(a)-1]
 }

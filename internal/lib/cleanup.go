@@ -60,9 +60,9 @@ func (cs CleanupService) StartCleanupService() {
 		}
 		workloads, err := cs.driver.GetWorkloads("pipelines")
 		if err != nil {
-			log.Fatal("GetServices for pipelines failed: " + err.Error())
+			log.Fatal("GetWorkloads for pipelines failed: " + err.Error())
 		}
-		cs.checkPipelineServices(pipes, workloads)
+		cs.checkPipelineWorkloads(pipes, workloads)
 		cs.checkPipes(workloads, pipes)
 
 		/****************************
@@ -76,6 +76,11 @@ func (cs CleanupService) StartCleanupService() {
 
 		workloads, err = cs.driver.GetWorkloads("serving")
 		if err != nil {
+			log.Fatal("GetWorkloads for serving instances failed: " + err.Error())
+		}
+
+		services, err := cs.driver.GetServices("serving")
+		if err != nil {
 			log.Fatal("GetServices for serving instances failed: " + err.Error())
 		}
 
@@ -84,9 +89,23 @@ func (cs CleanupService) StartCleanupService() {
 			log.Fatal("Get Influx data for serving instances failed: " + err.Error())
 		}
 		//cs.recreateServingServices(servings, services)
-		cs.checkServingServices(servings, workloads)
+		cs.checkServingWorkloads(servings, workloads)
 		cs.checkServings(workloads, servings)
+		cs.checkServingServices(workloads, services)
 		//cs.checkInfluxMeasurements(influxData, servings)
+	}
+}
+
+func (cs CleanupService) checkServingServices(workloads []Workload, services []Service) {
+	cs.logger.Print("************** Orphaned Serving Services ***************")
+	for _, service := range services {
+		if !serviceInWorkloads(service, workloads) {
+			cs.logPrint(service.Name, service.Id)
+			err := cs.driver.DeleteService(service.Id, "serving")
+			if err != nil {
+				log.Fatal("DeleteService failed: " + err.Error())
+			}
+		}
 	}
 }
 
@@ -106,10 +125,10 @@ func (cs CleanupService) checkInfluxMeasurements(influxData map[string][]string,
 	}
 }
 
-func (cs CleanupService) checkPipelineServices(pipes []Pipeline, workloads []Workload) {
+func (cs CleanupService) checkPipelineWorkloads(pipes []Pipeline, workloads []Workload) {
 	cs.logger.Print("**************** Orphaned Pipelines ********************")
 	for _, pipe := range pipes {
-		if !pipeInServices(pipe, workloads) {
+		if !pipeInWorkloads(pipe, workloads) {
 			deletePipe := true
 
 			for _, operator := range pipe.Operators {
@@ -139,20 +158,20 @@ func (cs CleanupService) checkPipelineServices(pipes []Pipeline, workloads []Wor
 func (cs CleanupService) checkPipes(workloads []Workload, pipes []Pipeline) {
 	cs.logger.Print("************** Orphaned Pipeline Services **************")
 	for _, workload := range workloads {
-		if !serviceInPipes(workload, pipes) {
+		if !workloadInPipes(workload, pipes) {
 			cs.logPrint(workload.Name, workload.Id, workload.ImageUuid)
-			err := cs.driver.DeleteService(workload.Name, "")
+			err := cs.driver.DeleteWorkload(workload.Name, "")
 			if err != nil {
-				log.Fatal("DeleteService failed: " + err.Error())
+				log.Fatal("DeleteWorkload failed: " + err.Error())
 			}
 		}
 	}
 }
 
-func (cs CleanupService) checkServingServices(serving []ServingInstance, workloads []Workload) {
+func (cs CleanupService) checkServingWorkloads(serving []ServingInstance, workloads []Workload) {
 	cs.logger.Print("**************** Orphaned Servings *********************")
 	for _, serving := range serving {
-		if !servingInServices(serving, workloads) {
+		if !servingInWorkloads(serving, workloads) {
 			user := cs.getKeycloakUserById(serving.UserId)
 			cs.logPrint(serving.ID.String(), serving.Name, *user.Username)
 			err := cs.serving.DeleteServingService(serving.ID.String(), serving.UserId, cs.keycloak.GetAccessToken())
@@ -165,14 +184,14 @@ func (cs CleanupService) checkServingServices(serving []ServingInstance, workloa
 }
 
 func (cs CleanupService) checkServings(workloads []Workload, servings []ServingInstance) {
-	cs.logger.Print("************** Orphaned Serving Services ***************")
+	cs.logger.Print("************** Orphaned Serving Workloads ***************")
 	for _, workload := range workloads {
 		if strings.Contains(workload.Name, "kafka-influx") || strings.Contains(workload.Name, "kafka2influx") {
-			if !serviceInServings(workload, servings) {
+			if !workloadInServings(workload, servings) {
 				cs.logPrint(workload.Name, workload.Id, workload.ImageUuid)
-				err := cs.driver.DeleteService(workload.Name, "serving")
+				err := cs.driver.DeleteWorkload(workload.Name, "serving")
 				if err != nil {
-					log.Fatal("DeleteService failed: " + err.Error())
+					log.Fatal("DeleteWorkload failed: " + err.Error())
 				}
 			}
 		}
@@ -220,7 +239,7 @@ func (cs CleanupService) getInfluxData() (influxDbs map[string][]string, err err
 func (cs CleanupService) recreateServingServices(serving []ServingInstance, workloads []Workload) {
 	cs.logger.Print("**************** Recreate Servings *********************")
 	for _, serving := range serving {
-		if !servingInServices(serving, workloads) {
+		if !servingInWorkloads(serving, workloads) {
 			cs.logPrint(serving.ID.String(), serving.Name)
 			if GetEnv("FORCE_DELETE", "") != "" && serving.Database == GetEnv("FORCE_DELETE", "") {
 				cs.influx.forceDeleteMeasurement(serving)

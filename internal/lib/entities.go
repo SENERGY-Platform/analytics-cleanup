@@ -76,7 +76,8 @@ type Workload struct {
 }
 
 type Service struct {
-	Id       string `json:"id"`
-	BaseType string `json:"baseType"`
-	Name     string `json:"name"`
+	Id                string   `json:"id"`
+	BaseType          string   `json:"baseType"`
+	Name              string   `json:"name"`
+	TargetWorkloadIds []string `json:"targetWorkloadIds,omitempty"`
 }
