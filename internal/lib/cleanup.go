@@ -35,6 +35,7 @@ type CleanupService struct {
 }
 
 const DividerString = "++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+const HeaderString = "********************************************************"
 
 func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline PipelineService, serving ServingService, logger Logger) *CleanupService {
 	influx := NewInflux()
@@ -89,9 +90,9 @@ func (cs CleanupService) StartCleanupService() {
 }
 
 func (cs CleanupService) checkInfluxMeasurements(influxData map[string][]string, servings []ServingInstance) {
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	cs.logger.Print("**************** Orphaned Measurements *****************")
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	for db, measurements := range influxData {
 		for _, measurement := range measurements {
 			if !influxMeasurementInServings(measurement, servings) {
@@ -107,9 +108,9 @@ func (cs CleanupService) checkInfluxMeasurements(influxData map[string][]string,
 }
 
 func (cs CleanupService) checkPipelineServices(pipes []Pipeline, services []Service) {
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	cs.logger.Print("**************** Orphaned Pipelines ********************")
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	for _, pipe := range pipes {
 		if !pipeInServices(pipe, services) {
 			deletePipe := true
@@ -142,9 +143,9 @@ func (cs CleanupService) checkPipelineServices(pipes []Pipeline, services []Serv
 }
 
 func (cs CleanupService) checkPipes(services []Service, pipes []Pipeline) {
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	cs.logger.Print("************** Orphaned Pipeline Services **************")
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	for _, service := range services {
 		if !serviceInPipes(service, pipes) {
 			cs.logger.Print(DividerString)
@@ -161,9 +162,9 @@ func (cs CleanupService) checkPipes(services []Service, pipes []Pipeline) {
 }
 
 func (cs CleanupService) checkServingServices(serving []ServingInstance, services []Service) {
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	cs.logger.Print("**************** Orphaned Servings *********************")
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	for _, serving := range serving {
 		if !servingInServices(serving, services) {
 			cs.logger.Print(DividerString)
@@ -181,9 +182,9 @@ func (cs CleanupService) checkServingServices(serving []ServingInstance, service
 }
 
 func (cs CleanupService) checkServings(services []Service, servings []ServingInstance) {
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	cs.logger.Print("************** Orphaned Serving Services ***************")
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	for _, service := range services {
 		if strings.Contains(service.Name, "kafka-influx") || strings.Contains(service.Name, "kafka2influx") {
 			if !serviceInServings(service, servings) {
@@ -285,12 +286,12 @@ func (cs CleanupService) getInfluxData() (influxDbs map[string][]string, err err
 }
 
 func (cs CleanupService) recreateServingServices(serving []ServingInstance, services []Service) {
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	cs.logger.Print("**************** Recreate Servings *********************")
-	cs.logger.Print("********************************************************")
+	cs.logger.Print(HeaderString)
 	for _, serving := range serving {
 		if !servingInServices(serving, services) {
-			cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+			cs.logger.Print(DividerString)
 			cs.logger.Print(serving.ID)
 			cs.logger.Print(serving.Name)
 
