@@ -22,6 +22,7 @@ import (
 	_ "github.com/influxdata/influxdb1-client"
 	influxClient "github.com/influxdata/influxdb1-client/v2"
 	"log"
+	"strconv"
 	"strings"
 )
 
@@ -126,12 +127,8 @@ func (cs CleanupService) checkPipelineServices(pipes []Pipeline, services []Serv
 			}
 
 			if deletePipe {
-				cs.logger.Print(DividerString)
-				cs.logger.Print(pipe.Id)
-				cs.logger.Print(pipe.Name)
-				cs.logger.Print(len(pipe.Operators))
 				user := cs.getKeycloakUserById(pipe.UserId)
-				cs.logger.Print(*user.Username)
+				cs.logPrint(pipe.Id, pipe.Name, strconv.Itoa(len(pipe.Operators)), *user.Username)
 				err := cs.pipeline.DeletePipeline(pipe.Id, pipe.UserId, cs.keycloak.GetAccessToken())
 				if err != nil {
 					log.Fatal("DeletePipeline failed:" + err.Error())
@@ -148,11 +145,7 @@ func (cs CleanupService) checkPipes(services []Service, pipes []Pipeline) {
 	cs.logger.Print(HeaderString)
 	for _, service := range services {
 		if !serviceInPipes(service, pipes) {
-			cs.logger.Print(DividerString)
-			cs.logger.Print(service.Name)
-			cs.logger.Print(service.Id)
-			cs.logger.Print(service.ImageUuid)
-			cs.logger.Print(service.Labels)
+			cs.logPrint(service.Name, service.Id, service.ImageUuid)
 			err := cs.driver.DeleteService(service.Name, "")
 			if err != nil {
 				log.Fatal("DeleteService failed: " + err.Error())
@@ -167,11 +160,8 @@ func (cs CleanupService) checkServingServices(serving []ServingInstance, service
 	cs.logger.Print(HeaderString)
 	for _, serving := range serving {
 		if !servingInServices(serving, services) {
-			cs.logger.Print(DividerString)
-			cs.logger.Print(serving.ID)
-			cs.logger.Print(serving.Name)
 			user := cs.getKeycloakUserById(serving.UserId)
-			cs.logger.Print(*user.Username)
+			cs.logPrint(serving.ID.String(), serving.Name, *user.Username)
 			err := cs.serving.DeleteServingService(serving.ID.String(), serving.UserId, cs.keycloak.GetAccessToken())
 			if err != nil {
 				log.Fatal("DeleteServingService failed:" + err.Error())
@@ -188,11 +178,7 @@ func (cs CleanupService) checkServings(services []Service, servings []ServingIns
 	for _, service := range services {
 		if strings.Contains(service.Name, "kafka-influx") || strings.Contains(service.Name, "kafka2influx") {
 			if !serviceInServings(service, servings) {
-				cs.logger.Print(DividerString)
-				cs.logger.Print(service.Name)
-				cs.logger.Print(service.Id)
-				cs.logger.Print(service.ImageUuid)
-				cs.logger.Print(service.Labels)
+				cs.logPrint(service.Name, service.Id, service.ImageUuid)
 				err := cs.driver.DeleteService(service.Name, "serving")
 				if err != nil {
 					log.Fatal("DeleteService failed: " + err.Error())
@@ -200,51 +186,6 @@ func (cs CleanupService) checkServings(services []Service, servings []ServingIns
 			}
 		}
 	}
-}
-
-func pipeInServices(pipe Pipeline, services []Service) bool {
-	for _, service := range services {
-		if strings.Contains(service.Name, pipe.Id) {
-			return true
-		}
-	}
-	return false
-}
-
-func serviceInPipes(service Service, pipes []Pipeline) bool {
-	for _, pipe := range pipes {
-		if strings.Contains(service.Name, pipe.Id) {
-			return true
-		}
-	}
-	return false
-}
-
-func servingInServices(serving ServingInstance, services []Service) bool {
-	for _, service := range services {
-		if strings.Contains(service.Name, serving.ID.String()) {
-			return true
-		}
-	}
-	return false
-}
-
-func serviceInServings(service Service, servings []ServingInstance) bool {
-	for _, serving := range servings {
-		if strings.Contains(service.Name, serving.ID.String()) {
-			return true
-		}
-	}
-	return false
-}
-
-func influxMeasurementInServings(measurement string, servings []ServingInstance) bool {
-	for _, serving := range servings {
-		if measurement == serving.Measurement {
-			return true
-		}
-	}
-	return false
 }
 
 func (cs CleanupService) getInfluxData() (influxDbs map[string][]string, err error) {
@@ -291,10 +232,7 @@ func (cs CleanupService) recreateServingServices(serving []ServingInstance, serv
 	cs.logger.Print(HeaderString)
 	for _, serving := range serving {
 		if !servingInServices(serving, services) {
-			cs.logger.Print(DividerString)
-			cs.logger.Print(serving.ID)
-			cs.logger.Print(serving.Name)
-
+			cs.logPrint(serving.ID.String(), serving.Name)
 			if GetEnv("FORCE_DELETE", "") != "" && serving.Database == GetEnv("FORCE_DELETE", "") {
 				cs.influx.forceDeleteMeasurement(serving)
 			}
@@ -325,4 +263,11 @@ func (cs *CleanupService) getKeycloakUserById(id string) (user *gocloak.User) {
 		log.Fatal("could not get user data from keycloak")
 	}
 	return
+}
+
+func (cs *CleanupService) logPrint(vars ...string) {
+	cs.logger.Print(DividerString)
+	for _, v := range vars {
+		cs.logger.Print(v)
+	}
 }

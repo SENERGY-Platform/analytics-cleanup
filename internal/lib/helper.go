@@ -19,7 +19,53 @@ package lib
 import (
 	"encoding/json"
 	"os"
+	"strings"
 )
+
+func pipeInServices(pipe Pipeline, services []Service) bool {
+	for _, service := range services {
+		if strings.Contains(service.Name, pipe.Id) {
+			return true
+		}
+	}
+	return false
+}
+
+func serviceInPipes(service Service, pipes []Pipeline) bool {
+	for _, pipe := range pipes {
+		if strings.Contains(service.Name, pipe.Id) {
+			return true
+		}
+	}
+	return false
+}
+
+func servingInServices(serving ServingInstance, services []Service) bool {
+	for _, service := range services {
+		if strings.Contains(service.Name, serving.ID.String()) {
+			return true
+		}
+	}
+	return false
+}
+
+func serviceInServings(service Service, servings []ServingInstance) bool {
+	for _, serving := range servings {
+		if strings.Contains(service.Name, serving.ID.String()) {
+			return true
+		}
+	}
+	return false
+}
+
+func influxMeasurementInServings(measurement string, servings []ServingInstance) bool {
+	for _, serving := range servings {
+		if measurement == serving.Measurement {
+			return true
+		}
+	}
+	return false
+}
 
 func GetEnv(key, fallback string) string {
 	value := os.Getenv(key)
