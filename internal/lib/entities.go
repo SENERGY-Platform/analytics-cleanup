@@ -67,14 +67,16 @@ type ServingInstanceValue struct {
 	Path       string    `json:"Path,omitempty"`
 }
 
-type ServiceCollection struct {
-	Data []Service `json:"data"`
-}
-
-type Service struct {
+type Workload struct {
 	Id          string            `json:"id"`
 	Name        string            `json:"name"`
 	ImageUuid   string            `json:"imageUuid,omitempty"`
 	Environment map[string]string `json:"environment"`
 	Labels      map[string]string `json:"labels"`
+}
+
+type Service struct {
+	Id       string `json:"id"`
+	BaseType string `json:"baseType"`
+	Name     string `json:"name"`
 }

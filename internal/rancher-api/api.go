@@ -89,7 +89,7 @@ func (r Rancher) CreateServingInstance(instance *lib.ServingInstance, dataFields
 	return data["id"].(string)
 }
 
-func (r Rancher) GetServices(collection string) (services []lib.Service, err error) {
+func (r Rancher) GetWorkloads(collection string) (services []lib.Workload, err error) {
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey)
 	req := request.Get(r.url + "stacks/" + r.pipelinesStackId + "/services")
 	if collection == "serving" {
@@ -104,7 +104,7 @@ func (r Rancher) GetServices(collection string) (services []lib.Service, err err
 	err = json.Unmarshal([]byte(body), &serviceCollection)
 	if len(serviceCollection.Data) > 0 {
 		for _, service := range serviceCollection.Data {
-			services = append(services, lib.Service{
+			services = append(services, lib.Workload{
 				Id:          service.Id,
 				Name:        service.Name,
 				ImageUuid:   service.ImageUuid,

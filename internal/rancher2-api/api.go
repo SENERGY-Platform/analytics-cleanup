@@ -86,7 +86,7 @@ func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFiel
 	return ""
 }
 
-func (r *Rancher2) GetServices(collection string) (services []lib.Service, err error) {
+func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, err error) {
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	request.Get(r.url + "projects/" + r.pipeProjectId + "/workloads/?namespaceId=" + r.pipeNamespaceId)
 	if collection == "serving" {
@@ -101,16 +101,16 @@ func (r *Rancher2) GetServices(collection string) (services []lib.Service, err e
 		err = errors.New("something went wrong")
 		return
 	}
-	var serviceCollection = ServiceCollection{}
-	err = json.Unmarshal([]byte(body), &serviceCollection)
-	if len(serviceCollection.Data) > 1 {
-		for _, service := range serviceCollection.Data {
-			services = append(services, lib.Service{
-				Id:          service.Id,
-				Name:        service.Name,
-				ImageUuid:   service.Containers[0].Image,
-				Environment: service.Containers[0].Environment,
-				Labels:      service.Labels,
+	var workloadCollection = WorkloadCollection{}
+	err = json.Unmarshal([]byte(body), &workloadCollection)
+	if len(workloadCollection.Data) > 1 {
+		for _, workload := range workloadCollection.Data {
+			workloads = append(workloads, lib.Workload{
+				Id:          workload.Id,
+				Name:        workload.Name,
+				ImageUuid:   workload.Containers[0].Image,
+				Environment: workload.Containers[0].Environment,
+				Labels:      workload.Labels,
 			})
 		}
 	}

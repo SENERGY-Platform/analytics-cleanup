@@ -22,36 +22,36 @@ import (
 	"strings"
 )
 
-func pipeInServices(pipe Pipeline, services []Service) bool {
-	for _, service := range services {
-		if strings.Contains(service.Name, pipe.Id) {
+func pipeInServices(pipe Pipeline, workloads []Workload) bool {
+	for _, workload := range workloads {
+		if strings.Contains(workload.Name, pipe.Id) {
 			return true
 		}
 	}
 	return false
 }
 
-func serviceInPipes(service Service, pipes []Pipeline) bool {
+func serviceInPipes(workload Workload, pipes []Pipeline) bool {
 	for _, pipe := range pipes {
-		if strings.Contains(service.Name, pipe.Id) {
+		if strings.Contains(workload.Name, pipe.Id) {
 			return true
 		}
 	}
 	return false
 }
 
-func servingInServices(serving ServingInstance, services []Service) bool {
-	for _, service := range services {
-		if strings.Contains(service.Name, serving.ID.String()) {
+func servingInServices(serving ServingInstance, workloads []Workload) bool {
+	for _, workload := range workloads {
+		if strings.Contains(workload.Name, serving.ID.String()) {
 			return true
 		}
 	}
 	return false
 }
 
-func serviceInServings(service Service, servings []ServingInstance) bool {
+func serviceInServings(workload Workload, servings []ServingInstance) bool {
 	for _, serving := range servings {
-		if strings.Contains(service.Name, serving.ID.String()) {
+		if strings.Contains(workload.Name, serving.ID.String()) {
 			return true
 		}
 	}

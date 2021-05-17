@@ -54,11 +54,11 @@ type Node struct {
 	RequireAll []string `json:"requireAll,omitempty"`
 }
 
-type ServiceCollection struct {
-	Data []Service `json:"data"`
+type WorkloadCollection struct {
+	Data []Workload `json:"data"`
 }
 
-type Service struct {
+type Workload struct {
 	Id         string            `json:"id,omitempty"`
 	Name       string            `json:"name,omitempty"`
 	Labels     map[string]string `json:"labels,omitempty"`
