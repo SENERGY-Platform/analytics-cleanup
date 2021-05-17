@@ -262,7 +262,7 @@ func (cs CleanupService) getInfluxData() (influxDbs map[string][]string, err err
 		str := fmt.Sprint(val)
 		influxDbs[strings.Replace(strings.Replace(str, "]", "", -1), "[", "", -1)] = []string{}
 	}
-	for db, _ := range influxDbs {
+	for db := range influxDbs {
 		if db != "_internal" {
 			q := influxClient.NewQuery("SHOW MEASUREMENTS", db, "")
 			response, err = cs.influx.client.Query(q)
