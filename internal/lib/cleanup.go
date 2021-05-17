@@ -18,6 +18,7 @@ package lib
 
 import (
 	"fmt"
+	"github.com/Nerzal/gocloak/v5"
 	_ "github.com/influxdata/influxdb1-client"
 	influxClient "github.com/influxdata/influxdb1-client/v2"
 	"log"
@@ -32,6 +33,8 @@ type CleanupService struct {
 	logger   Logger
 	influx   *Influx
 }
+
+const DividerString = "++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
 func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline PipelineService, serving ServingService, logger Logger) *CleanupService {
 	influx := NewInflux()
@@ -92,7 +95,7 @@ func (cs CleanupService) checkInfluxMeasurements(influxData map[string][]string,
 	for db, measurements := range influxData {
 		for _, measurement := range measurements {
 			if !influxMeasurementInServings(measurement, servings) {
-				cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+				cs.logger.Print(DividerString)
 				cs.logger.Print(db + ":" + measurement)
 				errors := cs.influx.DropMeasurement(measurement, db)
 				if len(errors) > 0 {
@@ -109,24 +112,29 @@ func (cs CleanupService) checkPipelineServices(pipes []Pipeline, services []Serv
 	cs.logger.Print("********************************************************")
 	for _, pipe := range pipes {
 		if !pipeInServices(pipe, services) {
-			cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-			cs.logger.Print(pipe.Id)
-			cs.logger.Print(pipe.Name)
+			deletePipe := true
+
 			for _, operator := range pipe.Operators {
-				cs.logger.Print(operator.Name)
-				cs.logger.Print(operator.ImageId)
+				if operator.DeploymentType != "local" {
+					cs.logger.Print(operator.Name)
+					cs.logger.Print(operator.ImageId)
+				} else {
+					deletePipe = false
+					break
+				}
 			}
-			cs.logger.Print(len(pipe.Operators))
-			user, err := cs.keycloak.GetUserByID(pipe.UserId)
-			if err != nil {
-				log.Fatal("GetUserByID failed:" + err.Error())
-			}
-			if user != nil {
+
+			if deletePipe {
+				cs.logger.Print(DividerString)
+				cs.logger.Print(pipe.Id)
+				cs.logger.Print(pipe.Name)
+				cs.logger.Print(len(pipe.Operators))
+				user := cs.getKeycloakUserById(pipe.UserId)
 				cs.logger.Print(*user.Username)
-			}
-			err = cs.pipeline.DeletePipeline(pipe.Id, pipe.UserId, cs.keycloak.GetAccessToken())
-			if err != nil {
-				log.Fatal("DeletePipeline failed:" + err.Error())
+				err := cs.pipeline.DeletePipeline(pipe.Id, pipe.UserId, cs.keycloak.GetAccessToken())
+				if err != nil {
+					log.Fatal("DeletePipeline failed:" + err.Error())
+				}
 			}
 		}
 
@@ -139,7 +147,7 @@ func (cs CleanupService) checkPipes(services []Service, pipes []Pipeline) {
 	cs.logger.Print("********************************************************")
 	for _, service := range services {
 		if !serviceInPipes(service, pipes) {
-			cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+			cs.logger.Print(DividerString)
 			cs.logger.Print(service.Name)
 			cs.logger.Print(service.Id)
 			cs.logger.Print(service.ImageUuid)
@@ -158,17 +166,12 @@ func (cs CleanupService) checkServingServices(serving []ServingInstance, service
 	cs.logger.Print("********************************************************")
 	for _, serving := range serving {
 		if !servingInServices(serving, services) {
-			cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+			cs.logger.Print(DividerString)
 			cs.logger.Print(serving.ID)
 			cs.logger.Print(serving.Name)
-			user, err := cs.keycloak.GetUserByID(serving.UserId)
-			if err != nil {
-				log.Fatal("GetUserByID failed:" + err.Error())
-			}
-			if user != nil {
-				cs.logger.Print(*user.Username)
-			}
-			err = cs.serving.DeleteServingService(serving.ID.String(), serving.UserId, cs.keycloak.GetAccessToken())
+			user := cs.getKeycloakUserById(serving.UserId)
+			cs.logger.Print(*user.Username)
+			err := cs.serving.DeleteServingService(serving.ID.String(), serving.UserId, cs.keycloak.GetAccessToken())
 			if err != nil {
 				log.Fatal("DeleteServingService failed:" + err.Error())
 			}
@@ -184,7 +187,7 @@ func (cs CleanupService) checkServings(services []Service, servings []ServingIns
 	for _, service := range services {
 		if strings.Contains(service.Name, "kafka-influx") || strings.Contains(service.Name, "kafka2influx") {
 			if !serviceInServings(service, servings) {
-				cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+				cs.logger.Print(DividerString)
 				cs.logger.Print(service.Name)
 				cs.logger.Print(service.Id)
 				cs.logger.Print(service.ImageUuid)
@@ -290,13 +293,7 @@ func (cs CleanupService) recreateServingServices(serving []ServingInstance, serv
 			cs.logger.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
 			cs.logger.Print(serving.ID)
 			cs.logger.Print(serving.Name)
-			user, err := cs.keycloak.GetUserByID(serving.UserId)
-			if err != nil {
-				log.Fatal("GetUserByID failed:" + err.Error())
-			}
-			if user != nil {
-				cs.logger.Print(*user.Username)
-			}
+
 			if GetEnv("FORCE_DELETE", "") != "" && serving.Database == GetEnv("FORCE_DELETE", "") {
 				cs.influx.forceDeleteMeasurement(serving)
 			}
@@ -316,4 +313,15 @@ func (cs *CleanupService) create(serving ServingInstance) {
 	}
 	dataFields = dataFields + "}"
 	cs.driver.CreateServingInstance(&serving, dataFields)
+}
+
+func (cs *CleanupService) getKeycloakUserById(id string) (user *gocloak.User) {
+	user, err := cs.keycloak.GetUserByID(id)
+	if err != nil {
+		log.Fatal("GetUserByID failed:" + err.Error())
+	}
+	if user == nil {
+		log.Fatal("could not get user data from keycloak")
+	}
+	return
 }
