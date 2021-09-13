@@ -18,6 +18,7 @@ package lib
 
 import (
 	"github.com/Shopify/sarama"
+	"time"
 )
 
 type KafkaAdmin struct {
@@ -57,5 +58,6 @@ func (this *KafkaAdmin) GetTopics() (topics []string, err error) {
 
 func (this *KafkaAdmin) getAdmin() (admin sarama.ClusterAdmin, err error) {
 	sconfig := sarama.NewConfig()
+	sconfig.Admin.Timeout = 25 * time.Second
 	return sarama.NewClusterAdmin([]string{this.kafkaBootstrap}, sconfig)
 }
