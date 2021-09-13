@@ -27,19 +27,20 @@ import (
 )
 
 type CleanupService struct {
-	keycloak KeycloakService
-	driver   Driver
-	pipeline PipelineService
-	serving  ServingService
-	logger   Logger
-	influx   *Influx
+	keycloak   KeycloakService
+	driver     Driver
+	pipeline   PipelineService
+	serving    ServingService
+	logger     Logger
+	influx     *Influx
+	kafkaAdmin *KafkaAdmin
 }
 
 const DividerString = "++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
-func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline PipelineService, serving ServingService, logger Logger) *CleanupService {
+func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline PipelineService, serving ServingService, logger Logger, kafkaAdmin *KafkaAdmin) *CleanupService {
 	influx := NewInflux()
-	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, serving: serving, logger: logger, influx: influx}
+	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, serving: serving, logger: logger, influx: influx, kafkaAdmin: kafkaAdmin}
 }
 
 func (cs CleanupService) StartCleanupService() {
@@ -64,6 +65,7 @@ func (cs CleanupService) StartCleanupService() {
 		}
 		cs.checkPipelineWorkloads(pipes, workloads)
 		cs.checkPipes(workloads, pipes)
+		cs.checkKafkaTopics()
 
 		/****************************
 			Check analytics serving
@@ -193,6 +195,27 @@ func (cs CleanupService) checkServings(workloads []Workload, servings []ServingI
 				if err != nil {
 					log.Fatal("DeleteWorkload failed: " + err.Error())
 				}
+			}
+		}
+	}
+}
+
+func (cs CleanupService) checkKafkaTopics() {
+	cs.logger.Print("************** Orphaned Kafka Topics ***************")
+	envs, err := cs.driver.GetWorkloadEnvs("pipelines")
+	if err != nil {
+		log.Fatal("GetWorkloads for pipelines failed: " + err.Error())
+	}
+	topics, err := cs.kafkaAdmin.GetTopics()
+	if err != nil {
+		log.Fatal("error in GetTopics", err.Error())
+	}
+	for _, topic := range topics {
+		if isInternalAnalyticsTopic(topic) && !pipelineExists(topic, envs) {
+			cs.logger.Print(topic)
+			err = cs.kafkaAdmin.DeleteTopic(topic)
+			if err != nil {
+				log.Fatal("DeleteTopic failed", err.Error())
 			}
 		}
 	}

@@ -147,6 +147,33 @@ func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, er
 	return
 }
 
+func (r *Rancher2) GetWorkloadEnvs(collection string) (envs []map[string]string, err error) {
+	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	request.Get(r.url + "projects/" + r.pipeProjectId + "/workloads/?namespaceId=" + r.pipeNamespaceId)
+	if collection == "serving" {
+		request.Get(r.url + "projects/" + r.servingProjectId + "/workloads/?namespaceId=" + r.servingNamespaceId)
+	}
+	resp, body, e := request.End()
+	if resp.StatusCode != http.StatusOK {
+		err = errors.New("could not get services: ")
+		return
+	}
+	if len(e) > 0 {
+		err = errors.New("something went wrong")
+		return
+	}
+	var workloadCollection = WorkloadCollection{}
+	err = json.Unmarshal([]byte(body), &workloadCollection)
+	if len(workloadCollection.Data) > 1 {
+		for _, workload := range workloadCollection.Data {
+			for _, container := range workload.Containers {
+				envs = append(envs, container.Environment)
+			}
+		}
+	}
+	return
+}
+
 func (r *Rancher2) DeleteWorkload(workloadId string, collection string) (err error) {
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	request.Delete(r.url + "projects/" + r.pipeProjectId + "/workloads/deployment:" + r.pipeNamespaceId + ":" + workloadId)

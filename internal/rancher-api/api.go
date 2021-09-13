@@ -120,6 +120,27 @@ func (r Rancher) GetWorkloads(collection string) (services []lib.Workload, err e
 	return
 }
 
+func (r Rancher) GetWorkloadEnvs(collection string) (envs []map[string]string, err error) {
+	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey)
+	req := request.Get(r.url + "stacks/" + r.pipelinesStackId + "/services")
+	if collection == "serving" {
+		req = request.Get(r.url + "stacks/" + r.servingStackId + "/services")
+	}
+	resp, body, errs := req.End()
+	if len(errs) > 0 || resp.StatusCode != http.StatusOK {
+		err = errors.New("could not access services")
+		return
+	}
+	var serviceCollection = ServiceCollection{}
+	err = json.Unmarshal([]byte(body), &serviceCollection)
+	if len(serviceCollection.Data) > 0 {
+		for _, service := range serviceCollection.Data {
+			envs = append(envs, service.Environment)
+		}
+	}
+	return
+}
+
 func (r Rancher) DeleteWorkload(serviceName string, collection string) (err error) {
 	service, err := r.getServiceByName(serviceName)
 	if err != nil {

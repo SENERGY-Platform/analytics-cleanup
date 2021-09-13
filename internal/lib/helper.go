@@ -19,6 +19,7 @@ package lib
 import (
 	"encoding/json"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -113,4 +114,25 @@ func removeFromSlice(a []struct{}, i int) {
 	copy(a[i:], a[i+1:])     // Shift a[i+1:] left one index.
 	a[len(a)-1] = struct{}{} // Erase last element (write zero value).
 	a = a[:len(a)-1]
+}
+
+var kafkaInternalAnalyticsRx = regexp.MustCompile("(analytics-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}.*-(repartition|changelog))")
+var kafkaInternalAnalyticsPipelineIdRx = regexp.MustCompile("analytics-([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})")
+
+func isInternalAnalyticsTopic(topic string) bool {
+	return kafkaInternalAnalyticsRx.MatchString(topic)
+}
+
+func pipelineExists(topic string, envs []map[string]string) bool {
+	id := kafkaInternalAnalyticsPipelineIdRx.FindString(topic)
+	for _, env := range envs {
+		appId, ok := env["CONFIG_APPLICATION_ID"]
+		if !ok {
+			continue
+		}
+		if strings.HasPrefix(appId, id) {
+			return true
+		}
+	}
+	return false
 }

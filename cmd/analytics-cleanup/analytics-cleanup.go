@@ -72,10 +72,12 @@ func main() {
 		lib.GetEnv("KEYCLOAK_PW", "test"),
 	)
 
+	kafkaAdmin := lib.NewKafkaAdmin(lib.GetEnv("KAFKA_BOOTSTRAP", "127.0.0.1:9092"))
+
 	if lib.GetEnv("CRON_SCHEDULE", "* * * * *") == "false" {
 		logger := lib.NewLogger("logs/cleanup.log", "")
 		defer logger.Close()
-		service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger)
+		service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
 		service.StartCleanupService()
 		os.Exit(0)
 	} else {
@@ -88,7 +90,7 @@ func main() {
 			}
 			logger := lib.NewLogger("logs/cleanup-"+currentTime.Format("02-01-2006-15:04:05")+".log", "")
 			defer logger.Close()
-			service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger)
+			service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
 			service.StartCleanupService()
 		})
 		if err != nil {
