@@ -17,8 +17,11 @@
 package lib
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"time"
 
 	"strconv"
 
@@ -27,16 +30,17 @@ import (
 )
 
 type PipelineService struct {
-	url string
+	pipelineUrl string
+	engineUrl   string
 }
 
-func NewPipelineService(url string) *PipelineService {
-	return &PipelineService{url: url}
+func NewPipelineService(pipelineUrl string, engineUrl string) *PipelineService {
+	return &PipelineService{pipelineUrl: pipelineUrl, engineUrl: engineUrl}
 }
 
 func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes []Pipeline, err error) {
 	request := gorequest.New()
-	resp, body, _ := request.Get(p.url+"/admin/pipeline").Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
+	resp, body, _ := request.Get(p.pipelineUrl+"/admin/pipeline").Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
 	if resp.StatusCode != 200 {
 		fmt.Println("could not access pipeline registry: "+strconv.Itoa(resp.StatusCode), resp.Body)
 		return pipes, errors.New("could not access pipeline registry")
@@ -47,7 +51,7 @@ func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes 
 
 func (p PipelineService) DeletePipeline(id string, userId string, accessToken string) (err error) {
 	request := gorequest.New()
-	resp, _, e := request.Delete(p.url+"/admin/pipeline/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
+	resp, _, e := request.Delete(p.pipelineUrl+"/admin/pipeline/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
 	if resp.StatusCode != 200 {
 		fmt.Println("could not access pipeline registry: "+strconv.Itoa(resp.StatusCode), resp.Body)
 		err = errors.New("could not access pipeline registry")
@@ -57,4 +61,31 @@ func (p PipelineService) DeletePipeline(id string, userId string, accessToken st
 		err = errors.New("could not get pipeline from service")
 	}
 	return
+}
+
+func (p PipelineService) CreatePipeline(instance *PipelineRequest, userId string, userToken string) error {
+	b, err := json.Marshal(instance)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, p.engineUrl+"/pipeline", bytes.NewBuffer(b))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+userToken)
+	req.Header.Set("X-UserId", userId)
+	req.Header.Set("Content-Type", "application/json")
+
+	http.DefaultClient.Timeout = 10 * time.Second
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("unexpected status code " + strconv.Itoa(resp.StatusCode))
+	}
+	return nil
 }

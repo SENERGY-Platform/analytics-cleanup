@@ -36,6 +36,7 @@ func main() {
 	}
 	pipeline := lib.NewPipelineService(
 		lib.GetEnv("PIPELINE_API_ENDPOINT", ""),
+		lib.GetEnv("FLOW_ENGINE_API_ENDPOINT", ""),
 	)
 	serving := lib.NewServingService(
 		lib.GetEnv("SERVING_API_ENDPOINT", ""),

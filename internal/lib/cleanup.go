@@ -63,6 +63,12 @@ func (cs CleanupService) StartCleanupService() {
 		if err != nil {
 			log.Fatal("GetWorkloads for pipelines failed: " + err.Error())
 		}
+		/*
+			err = cs.recreatePipelines(pipes, workloads)
+			if err != nil {
+				log.Fatal("recreatePipelines failed: " + err.Error())
+			}
+		*/
 		cs.checkPipelineWorkloads(pipes, workloads)
 		cs.checkPipes(workloads, pipes)
 		cs.checkKafkaTopics()
@@ -271,6 +277,25 @@ func (cs CleanupService) recreateServingServices(serving []ServingInstance, work
 		}
 
 	}
+}
+
+func (cs CleanupService) recreatePipelines(pipelines []Pipeline, workloads []Workload) error {
+	cs.logger.Print("**************** Recreate Pipelines *********************")
+	for _, pipeline := range pipelines {
+		if !pipeInWorkloads(pipeline, workloads) {
+			cs.logPrint(pipeline.Id, pipeline.Name)
+			request := pipeline.ToRequest()
+			userToken, err := cs.keycloak.GetImpersonateToken(pipeline.UserId)
+			if err != nil {
+				return err
+			}
+			err = cs.pipeline.CreatePipeline(request, pipeline.UserId, userToken)
+			if err != nil {
+				cs.logger.Print(err.Error() + ", User: " + pipeline.UserId + ", Pipeline " + pipeline.Id)
+			}
+		}
+	}
+	return nil
 }
 
 func (cs *CleanupService) create(serving ServingInstance) {

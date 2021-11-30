@@ -17,8 +17,14 @@
 package lib
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/Nerzal/gocloak/v5"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"net/url"
 )
 
 type KeycloakService struct {
@@ -29,11 +35,12 @@ type KeycloakService struct {
 	realm        string
 	userName     string
 	password     string
+	url          string
 }
 
 func NewKeycloakService(url string, clientId string, clientSecret string, realm string, userName string, password string) *KeycloakService {
 	client := gocloak.NewClient(url)
-	return &KeycloakService{client, nil, clientId, clientSecret, realm, userName, password}
+	return &KeycloakService{client, nil, clientId, clientSecret, realm, userName, password, url}
 }
 
 func (k *KeycloakService) Login() {
@@ -63,4 +70,28 @@ func (k *KeycloakService) GetUserInfo() (*gocloak.UserInfo, error) {
 func (k *KeycloakService) GetUserByID(id string) (user *gocloak.User, err error) {
 	user, err = k.client.GetUserByID(k.token.AccessToken, k.realm, id)
 	return
+}
+
+func (k *KeycloakService) GetImpersonateToken(userId string) (token string, err error) {
+	resp, err := http.PostForm(k.url+"/auth/realms/"+k.realm+"/protocol/openid-connect/token", url.Values{
+		"client_id":         {k.clientId},
+		"client_secret":     {k.clientSecret},
+		"grant_type":        {"urn:ietf:params:oauth:grant-type:token-exchange"},
+		"requested_subject": {userId},
+	})
+	if err != nil {
+		return
+	}
+	if resp.StatusCode != http.StatusOK {
+		body, _ := ioutil.ReadAll(resp.Body)
+		log.Println("ERROR: GetUserToken()", resp.StatusCode, string(body))
+		err = errors.New("access denied")
+		return "", resp.Body.Close()
+	}
+	var openIdToken OpenidToken
+	err = json.NewDecoder(resp.Body).Decode(&openIdToken)
+	if err != nil {
+		return
+	}
+	return openIdToken.AccessToken, nil
 }
