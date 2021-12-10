@@ -299,15 +299,8 @@ func (cs CleanupService) recreatePipelines(pipelines []Pipeline, workloads []Wor
 }
 
 func (cs *CleanupService) create(serving ServingInstance) {
-	dataFields := "{"
-	for index, value := range serving.Values {
-		dataFields = dataFields + "\"" + value.Name + ":" + value.Type + "\":\"" + value.Path + "\""
-		if index+1 < len(serving.Values) {
-			dataFields = dataFields + ","
-		}
-	}
-	dataFields = dataFields + "}"
-	cs.driver.CreateServingInstance(&serving, dataFields)
+	dataFields, tagFields := servingGetDataAndTagFields(serving.Values)
+	cs.driver.CreateServingInstance(&serving, dataFields, tagFields)
 }
 
 func (cs *CleanupService) getKeycloakUserById(id string) (user *gocloak.User) {

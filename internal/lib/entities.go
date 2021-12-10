@@ -170,12 +170,15 @@ type ServingInstance struct {
 	EntityName       string                 `json:"EntityName,omitempty"`
 	ServiceName      string                 `json:"ServiceName,omitempty"`
 	Topic            string                 `json:"Topic,omitempty"`
+	ApplicationId    uuid.UUID              `json:"ApplicationId"`
 	Database         string                 `json:"Database,omitempty"`
 	Measurement      string                 `json:"Measurement,omitempty"`
 	Filter           string                 `json:"Filter,omitempty"`
 	FilterType       string                 `json:"FilterType,omitempty"`
 	TimePath         string                 `json:"TimePath,omitempty"`
+	TimePrecision    *string                `json:"TimePrecision"`
 	UserId           string                 `json:"UserId,omitempty"`
+	Generated        bool                   `json:"Generated"`
 	RancherServiceId string                 `json:"RancherServiceId,omitempty"`
 	Offset           string                 `json:"Offset,omitempty"`
 	Values           []ServingInstanceValue `json:"Values,omitempty"`
@@ -188,6 +191,7 @@ type ServingInstanceValue struct {
 	Name       string    `json:"Name,omitempty"`
 	Type       string    `json:"Type,omitempty"`
 	Path       string    `json:"Path,omitempty"`
+	Tag        bool      `json:"Tag"`
 }
 
 type Workload struct {

@@ -41,25 +41,34 @@ func NewRancher2(url string, accessKey string, secretKey string, servingNamespac
 	return &Rancher2{url, accessKey, secretKey, servingNamespaceId, servingProjectId, pipeNamespaceId, pipeProjectId}
 }
 
-func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFields string) string {
+func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFields string, tagFields string) string {
 	env := map[string]string{
-		"KAFKA_GROUP_ID":      "transfer-" + instance.ID.String(),
+		"KAFKA_GROUP_ID":      "transfer-" + instance.ApplicationId.String(),
 		"KAFKA_BOOTSTRAP":     lib.GetEnv("KAFKA_BOOTSTRAP", "broker.kafka.rancher.internal:9092"),
 		"KAFKA_TOPIC":         instance.Topic,
 		"DATA_MEASUREMENT":    instance.Measurement,
 		"DATA_FIELDS_MAPPING": dataFields,
+		"DATA_TAGS_MAPPING":   tagFields,
 		"DATA_TIME_MAPPING":   instance.TimePath,
 		"DATA_FILTER_ID":      instance.Filter,
 		"INFLUX_DB":           instance.Database,
-		"INFLUX_HOST":         "serving-db.influx",
+		"INFLUX_HOST":         lib.GetEnv("INFLUX_DB_HOST", "influxdb"),
 		"INFLUX_PORT":         lib.GetEnv("INFLUX_DB_PORT", "8086"),
 		"INFLUX_USER":         lib.GetEnv("INFLUX_DB_USER", "root"),
 		"INFLUX_PW":           lib.GetEnv("INFLUX_DB_PASSWORD", ""),
 		"OFFSET_RESET":        instance.Offset,
 	}
 
+	if instance.TimePrecision != nil && *instance.TimePrecision != "" {
+		env["TIME_PRECISION"] = *instance.TimePrecision
+	}
+
 	if instance.FilterType == "operatorId" {
 		env["DATA_FILTER_ID_MAPPING"] = "operator_id"
+	}
+
+	if instance.FilterType == "import_id" {
+		env["DATA_FILTER_ID_MAPPING"] = "import_id"
 	}
 
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
@@ -71,16 +80,14 @@ func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFiel
 			Name:            "kafka2influx",
 			Environment:     env,
 			ImagePullPolicy: "Always",
+			Resources:       Resources{Limits: Limits{Cpu: "0.1"}},
 		}},
 		Scheduling: Scheduling{Scheduler: "default-scheduler", Node: Node{RequireAll: []string{"role=worker"}}},
 		Labels:     map[string]string{"exportId": instance.ID.String()},
 		Selector:   Selector{MatchLabels: map[string]string{"exportId": instance.ID.String()}},
 	}
-	resp, body, e := request.Post(r.url + "projects/" + r.servingProjectId + "/workloads").Send(reqBody).End()
-	if resp.StatusCode != http.StatusCreated {
-		fmt.Println("could not create export", body)
-	}
-	if len(e) > 0 {
+	resp, _, e := request.Post(r.url + "projects/" + r.servingProjectId + "/workloads").Send(reqBody).End()
+	if len(e) > 0 || resp.StatusCode > 299 {
 		fmt.Println("something went wrong", e)
 	}
 	return ""

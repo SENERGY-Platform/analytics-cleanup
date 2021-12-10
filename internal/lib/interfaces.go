@@ -22,5 +22,5 @@ type Driver interface {
 	GetWorkloadEnvs(collection string) (envs []map[string]string, err error)
 	DeleteWorkload(id string, collection string) error
 	DeleteService(id string, collection string) error
-	CreateServingInstance(instance *ServingInstance, dataFields string) string
+	CreateServingInstance(instance *ServingInstance, dataFields string, tagFields string) string
 }

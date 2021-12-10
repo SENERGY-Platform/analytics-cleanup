@@ -54,3 +54,24 @@ func (s *ServingService) DeleteServingService(id string, userId string, accessTo
 	}
 	return
 }
+
+func servingGetDataAndTagFields(requestValues []ServingInstanceValue) (dataFields string, tagFields string) {
+	dataFields = "{"
+	tagFields = "{"
+	for _, value := range requestValues {
+		if value.Tag {
+			if len(tagFields) > 1 {
+				tagFields = tagFields + ","
+			}
+			tagFields = tagFields + "\"" + value.Name + ":" + value.Type + "\":\"" + value.Path + "\""
+		} else {
+			if len(dataFields) > 1 {
+				dataFields = dataFields + ","
+			}
+			dataFields = dataFields + "\"" + value.Name + ":" + value.Type + "\":\"" + value.Path + "\""
+		}
+	}
+	dataFields = dataFields + "}"
+	tagFields = tagFields + "}"
+	return
+}

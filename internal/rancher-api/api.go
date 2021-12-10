@@ -38,13 +38,14 @@ func NewRancher(url string, accessKey string, secretKey string, pipelinesStackId
 	return &Rancher{url, accessKey, secretKey, pipelinesStackId, servingStackId}
 }
 
-func (r Rancher) CreateServingInstance(instance *lib.ServingInstance, dataFields string) string {
+func (r Rancher) CreateServingInstance(instance *lib.ServingInstance, dataFields string, tagFields string) (serviceId string) {
 	env := map[string]string{
-		"KAFKA_GROUP_ID":      "transfer-" + instance.ID.String(),
+		"KAFKA_GROUP_ID":      "transfer-" + instance.ApplicationId.String(),
 		"KAFKA_BOOTSTRAP":     lib.GetEnv("KAFKA_BOOTSTRAP", "broker.kafka.rancher.internal:9092"),
 		"KAFKA_TOPIC":         instance.Topic,
 		"DATA_MEASUREMENT":    instance.Measurement,
 		"DATA_FIELDS_MAPPING": dataFields,
+		"DATA_TAGS_MAPPING":   tagFields,
 		"DATA_TIME_MAPPING":   instance.TimePath,
 		"DATA_FILTER_ID":      instance.Filter,
 		"INFLUX_DB":           instance.Database,
@@ -55,8 +56,16 @@ func (r Rancher) CreateServingInstance(instance *lib.ServingInstance, dataFields
 		"OFFSET_RESET":        instance.Offset,
 	}
 
-	if instance.FilterType == "pipeId" {
-		env["DATA_FILTER_ID_MAPPING"] = "pipeline_id"
+	if instance.TimePrecision != nil && *instance.TimePrecision != "" {
+		env["TIME_PRECISION"] = *instance.TimePrecision
+	}
+
+	if instance.FilterType == "operatorId" {
+		env["DATA_FILTER_ID_MAPPING"] = "operator_id"
+	}
+
+	if instance.FilterType == "import_id" {
+		env["DATA_FILTER_ID_MAPPING"] = "import_id"
 	}
 
 	labels := map[string]string{
@@ -85,8 +94,8 @@ func (r Rancher) CreateServingInstance(instance *lib.ServingInstance, dataFields
 	if len(e) > 0 {
 		fmt.Println("Something went wrong", e)
 	}
-	data := lib.ToJson(body)
-	return data["id"].(string)
+	serviceId = lib.ToJson(body)["id"].(string)
+	return
 }
 
 func (r Rancher) GetServices(collection string) (services []lib.Service, err error) {
