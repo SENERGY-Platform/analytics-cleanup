@@ -202,7 +202,7 @@ type Workload struct {
 	Labels      map[string]string `json:"labels"`
 }
 
-type Service struct {
+type KubeService struct {
 	Id                string   `json:"id"`
 	BaseType          string   `json:"baseType"`
 	Name              string   `json:"name"`

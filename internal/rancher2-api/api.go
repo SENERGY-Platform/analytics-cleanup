@@ -93,7 +93,7 @@ func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFiel
 	return ""
 }
 
-func (r *Rancher2) GetServices(collection string) (services []lib.Service, err error) {
+func (r *Rancher2) GetServices(collection string) (services []lib.KubeService, err error) {
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	request.Get(r.url + "projects/" + r.pipeProjectId + "/services/?limit=2000&namespaceId=" + r.pipeNamespaceId)
 	if collection == "serving" {
@@ -112,7 +112,7 @@ func (r *Rancher2) GetServices(collection string) (services []lib.Service, err e
 	err = json.Unmarshal([]byte(body), &serviceCollection)
 	if len(serviceCollection.Data) > 1 {
 		for _, service := range serviceCollection.Data {
-			services = append(services, lib.Service{
+			services = append(services, lib.KubeService{
 				Id:                service.Id,
 				Name:              service.Name,
 				BaseType:          service.BaseType,

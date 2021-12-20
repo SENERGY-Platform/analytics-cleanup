@@ -98,7 +98,7 @@ func (r Rancher) CreateServingInstance(instance *lib.ServingInstance, dataFields
 	return
 }
 
-func (r Rancher) GetServices(collection string) (services []lib.Service, err error) {
+func (r Rancher) GetServices(collection string) (services []lib.KubeService, err error) {
 	return
 }
 

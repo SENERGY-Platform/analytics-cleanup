@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 InfAI (CC SES)
+ * Copyright 2021 InfAI (CC SES)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +16,6 @@
 
 package lib
 
-type Driver interface {
-	GetServices(collection string) (services []KubeService, err error)
-	GetWorkloads(collection string) (workloads []Workload, err error)
-	GetWorkloadEnvs(collection string) (envs []map[string]string, err error)
-	DeleteWorkload(id string, collection string) error
-	DeleteService(id string, collection string) error
-	CreateServingInstance(instance *ServingInstance, dataFields string, tagFields string) string
+type Response struct {
+	Message string `json:"message,omitempty"`
 }
