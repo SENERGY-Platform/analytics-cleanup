@@ -41,6 +41,20 @@ export class CleanupService {
       catchError(this.errorHandlerService.handleError("", 'getOrphanedServingServices: Error', null)),
     );
   }
+
+  getOrphanedAnalyticsWorkloads(): Observable<KubeWorkload[] | null>  {
+    return this.httpClient.get<KubeWorkload[]>(environment.gateway + '/analyticsworkloads').pipe(
+      map((resp) => resp || null),
+      catchError(this.errorHandlerService.handleError("", 'getOrphanedAnalyticsWorkloads: Error', null)),
+    );
+  }
+
+  getOrphanedServingWorkloads(): Observable<KubeWorkload[] | null>  {
+    return this.httpClient.get<KubeWorkload[]>(environment.gateway + '/servingworkloads').pipe(
+      map((resp) => resp || null),
+      catchError(this.errorHandlerService.handleError("", 'getOrphanedServingWorkloads: Error', null)),
+    );
+  }
 }
 export interface AnalyticsPipeline {
   id: string;
@@ -56,5 +70,11 @@ export interface Export {
   UserId: string
   CreatedAt: string
   UpdatedAt: string
+}
+
+export interface KubeWorkload {
+  id: string;
+  name: string;
+  imageUuid: string
 }
 

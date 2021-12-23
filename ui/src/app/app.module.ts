@@ -19,13 +19,21 @@ import { PipesComponent } from './modules/pipes/pipes.component';
 import {HttpClientModule} from "@angular/common/http";
 import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
 import { ServingsComponent } from './modules/servings/servings.component';
+import { AnalyticsWorkloadsComponent } from './modules/analytics-workloads/analytics-workloads.component';
+import { ServingsWorkloadsComponent } from './modules/servings-workloads/servings-workloads.component';
+import { KubeServicesComponent } from './modules/kube-services/kube-services.component';
+import { InfluxMeasurementsComponent } from './modules/influx-measurements/influx-measurements.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     HomeComponent,
     PipesComponent,
-    ServingsComponent
+    ServingsComponent,
+    AnalyticsWorkloadsComponent,
+    ServingsWorkloadsComponent,
+    KubeServicesComponent,
+    InfluxMeasurementsComponent
   ],
   imports: [
     BrowserModule,
