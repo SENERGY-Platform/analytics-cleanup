@@ -1,17 +1,17 @@
 import { DataSource } from '@angular/cdk/collections';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
+import { map } from 'rxjs/operators';
 import {Observable, of as observableOf, merge, BehaviorSubject} from 'rxjs';
-import {map} from "rxjs/operators";
-import {AnalyticsPipeline} from "../cleanup.service";
+import {Export} from "../cleanup.service";
 
 /**
- * Data source for the Pipes view. This class should
+ * Data source for the Servings view. This class should
  * encapsulate all logic for fetching and manipulating the displayed data
  * (including sorting, pagination, and filtering).
  */
-export class PipesDataSource extends DataSource<AnalyticsPipeline> {
-  data: AnalyticsPipeline[] = [] as AnalyticsPipeline[];
+export class ServingsDataSource extends DataSource<Export> {
+  data: Export[] = [] as Export [];
   paginator: MatPaginator | undefined;
   sort: MatSort | undefined;
 
@@ -27,7 +27,7 @@ export class PipesDataSource extends DataSource<AnalyticsPipeline> {
    * the returned stream emits new items.
    * @returns A stream of the items to be rendered.
    */
-  connect(): Observable<AnalyticsPipeline[]> {
+  connect(): Observable<Export[]> {
     if (this.paginator && this.sort) {
       // Combine everything that affects the rendered data into one update
       // stream for the data-table to consume.
@@ -52,7 +52,7 @@ export class PipesDataSource extends DataSource<AnalyticsPipeline> {
    * Paginate the data (client-side). If you're using server-side pagination,
    * this would be replaced by requesting the appropriate data from the server.
    */
-  private getPagedData(data: AnalyticsPipeline[]): AnalyticsPipeline[] {
+  private getPagedData(data: Export[]): Export[] {
     if (this.paginator) {
       const startIndex = this.paginator.pageIndex * this.paginator.pageSize;
       return data.splice(startIndex, this.paginator.pageSize);
@@ -65,7 +65,7 @@ export class PipesDataSource extends DataSource<AnalyticsPipeline> {
    * Sort the data (client-side). If you're using server-side sorting,
    * this would be replaced by requesting the appropriate data from the server.
    */
-  private getSortedData(data: AnalyticsPipeline[]): AnalyticsPipeline[] {
+  private getSortedData(data: Export[]): Export[] {
     if (!this.sort || !this.sort.active || this.sort.direction === '') {
       return data;
     }
@@ -73,8 +73,8 @@ export class PipesDataSource extends DataSource<AnalyticsPipeline> {
     return data.sort((a, b) => {
       const isAsc = this.sort?.direction === 'asc';
       switch (this.sort?.active) {
-        case 'name': return compare(a.name, b.name, isAsc);
-        case 'id': return compare(+a.id, +b.id, isAsc);
+        case 'name': return compare(a.Name, b.Name, isAsc);
+        case 'id': return compare(+a.ID, +b.ID, isAsc);
         default: return 0;
       }
     });

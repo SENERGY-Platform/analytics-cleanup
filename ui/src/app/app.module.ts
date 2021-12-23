@@ -18,12 +18,14 @@ import {HomeComponent} from "./modules/home/home.component";
 import { PipesComponent } from './modules/pipes/pipes.component';
 import {HttpClientModule} from "@angular/common/http";
 import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
+import { ServingsComponent } from './modules/servings/servings.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     HomeComponent,
     PipesComponent,
+    ServingsComponent
   ],
   imports: [
     BrowserModule,
