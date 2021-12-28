@@ -17,4 +17,7 @@
 #
 
 find '/root/ui/dist/ui' -name '*.js' -exec sed -i -e 's,API_BASE_URL,'"$API_BASE_URL"',g' {} \;
+find '/root/ui/dist/ui' -name '*.js' -exec sed -i -e 's,KEYCLOAK_URL,'"$KEYCLOAK_URL"',g' {} \;
+find '/root/ui/dist/ui' -name '*.js' -exec sed -i -e 's,KEYCLOAK_REALM,'"$KEYCLOAK_REALM"',g' {} \;
+find '/root/ui/dist/ui' -name '*.js' -exec sed -i -e 's,KEYCLOAK_CLIENT_ID,'"$KEYCLOAK_CLIENT_ID"',g' {} \;
 ./analytics-cleanup
