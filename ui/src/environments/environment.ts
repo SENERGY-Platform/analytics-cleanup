@@ -4,7 +4,12 @@
 
 export const environment = {
   production: false,
-  gateway: 'http://localhost:8000/api'
+  gateway: 'http://localhost:8000/api',
+  keycloak: {
+    url: 'url'+'/auth',
+    realm: 'realm',
+    clientId: "id"
+  }
 };
 
 /*

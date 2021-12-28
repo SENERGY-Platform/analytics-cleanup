@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import {APP_INITIALIZER, NgModule} from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing.module';
@@ -21,6 +21,23 @@ import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
 import { ServingsComponent } from './modules/servings/servings.component';
 import { AnalyticsWorkloadsComponent } from './modules/analytics-workloads/analytics-workloads.component';
 import { ServingsWorkloadsComponent } from './modules/servings-workloads/servings-workloads.component';
+import {KeycloakAngularModule, KeycloakService} from "keycloak-angular";
+import {environment} from "../environments/environment";
+
+function initializeKeycloak(keycloak: KeycloakService) {
+  return () =>
+    keycloak.init({
+      config: {
+        url: environment.keycloak.url,
+        realm: environment.keycloak.realm,
+        clientId: environment.keycloak.clientId
+      },
+      initOptions: {
+        onLoad: 'login-required',
+        checkLoginIframe: false,
+      }
+    });
+}
 
 @NgModule({
   declarations: [
@@ -32,6 +49,7 @@ import { ServingsWorkloadsComponent } from './modules/servings-workloads/serving
     ServingsWorkloadsComponent
   ],
   imports: [
+    KeycloakAngularModule,
     BrowserModule,
     HttpClientModule,
     CoreModule,
@@ -48,7 +66,14 @@ import { ServingsWorkloadsComponent } from './modules/servings-workloads/serving
     MatSortModule,
     MatProgressSpinnerModule
   ],
-  providers: [],
+  providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: initializeKeycloak,
+      multi: true,
+      deps: [KeycloakService]
+    }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

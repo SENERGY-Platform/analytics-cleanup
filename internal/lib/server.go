@@ -18,10 +18,14 @@ package lib
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 	"log"
 	"net/http"
+	"strings"
+
+	"github.com/golang-jwt/jwt"
 )
 
 type Server struct {
@@ -44,15 +48,16 @@ func (s Server) CreateServer() {
 	router.HandleFunc("/api/kubeservices", s.getOrphanedKubeServices).Methods("GET")
 	router.HandleFunc("/api/influxmeasurements", s.getOrphanedInfluxMeasurements).Methods("GET")
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./ui/dist/ui")))
+	logger := NewWebLogger(router, "CALL")
+	access := accessMiddleware(logger)
 	c := cors.New(
 		cors.Options{
 			AllowedHeaders: []string{"Content-Type", "Authorization", "Accept", "Accept-Encoding", "X-CSRF-Token"},
 			AllowedOrigins: []string{"*"},
 			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PUT"},
 		})
-	handler := c.Handler(router)
-	logger := NewWebLogger(handler, "CALL")
-	log.Fatal(http.ListenAndServe(GetEnv("SERVERNAME", "")+":"+GetEnv("PORT", "8000"), logger))
+	handler := c.Handler(access)
+	log.Fatal(http.ListenAndServe(GetEnv("SERVERNAME", "")+":"+GetEnv("PORT", "8000"), handler))
 }
 
 func (s Server) healthCheck(w http.ResponseWriter, req *http.Request) {
@@ -101,4 +106,57 @@ func (s Server) getOrphanedInfluxMeasurements(w http.ResponseWriter, req *http.R
 		w.WriteHeader(200)
 		_ = json.NewEncoder(w).Encode(measurements)
 	}
+}
+
+func accessMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if checkUserAdmin(r) {
+			next.ServeHTTP(w, r)
+		} else {
+			http.Error(w, "Forbidden", http.StatusForbidden)
+		}
+	})
+}
+
+func checkUserAdmin(req *http.Request) (access bool) {
+	access = false
+	if req.Header.Get("Authorization") != "" {
+		token, claims := parseJWTToken(req.Header.Get("Authorization")[7:])
+		if token.Valid {
+			if StringInSlice("admin", claims.RealmAccess["roles"]) {
+				log.Printf("Authenticated user %s\n", claims.Sub)
+				access = true
+			}
+		} else {
+			log.Printf("Invalid token for user %s\n", claims.Sub)
+		}
+	}
+	return
+}
+
+func parseJWTToken(encodedToken string) (token *jwt.Token, claims Claims) {
+	const PEM_BEGIN = "-----BEGIN PUBLIC KEY-----"
+	const PEM_END = "-----END PUBLIC KEY-----"
+
+	token, _ = jwt.ParseWithClaims(encodedToken, &claims, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		switch GetEnv("JWT_SIGNING_METHOD", "rsa") {
+		case "rsa":
+			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			}
+			key := GetEnv("JWT_SIGNING_KEY", "")
+			if !strings.HasPrefix(key, PEM_BEGIN) {
+				key = PEM_BEGIN + "\n" + key + "\n" + PEM_END
+			}
+			return jwt.ParseRSAPublicKeyFromPEM([]byte(key))
+		case "hmac":
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			}
+			return []byte(GetEnv("JWT_SIGNING_KEY", "")), nil
+		}
+		return "", nil
+	})
+	return
 }
