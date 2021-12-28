@@ -1,0 +1,8 @@
+version: '3.5'
+services:
+  cleanup:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      API_BASE_URL: "localhost:8000/api"

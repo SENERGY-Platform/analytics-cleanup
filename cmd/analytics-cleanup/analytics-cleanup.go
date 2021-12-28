@@ -78,14 +78,14 @@ func main() {
 
 	if lib.GetEnv("MODE", "web") == "web" {
 		fmt.Println("starting webserver")
-		logger := lib.NewLogger("logs/cleanup.log", "")
+		logger := lib.NewFileLogger("logs/cleanup.log", "")
 		defer logger.Close()
 		service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
 		server := lib.NewServer(service)
 		server.CreateServer()
 	} else {
 		if lib.GetEnv("CRON_SCHEDULE", "* * * * *") == "false" {
-			logger := lib.NewLogger("logs/cleanup.log", "")
+			logger := lib.NewFileLogger("logs/cleanup.log", "")
 			defer logger.Close()
 			service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
 			service.StartCleanupService()
@@ -98,7 +98,7 @@ func main() {
 				if _, err := os.Stat("logs"); os.IsNotExist(err) {
 					os.Mkdir("logs", 0644)
 				}
-				logger := lib.NewLogger("logs/cleanup-"+currentTime.Format("02-01-2006-15:04:05")+".log", "")
+				logger := lib.NewFileLogger("logs/cleanup-"+currentTime.Format("02-01-2006-15:04:05")+".log", "")
 				defer logger.Close()
 				service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
 				service.StartCleanupService()

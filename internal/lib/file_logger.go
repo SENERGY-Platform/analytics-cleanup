@@ -21,29 +21,29 @@ import (
 	"os"
 )
 
-type Logger struct {
+type FileLogger struct {
 	logger *log.Logger
 	file   *os.File
 }
 
-func NewLogger(fileName string, prefix string) *Logger {
+func NewFileLogger(fileName string, prefix string) *FileLogger {
 	file, err := os.OpenFile(fileName,
 		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Println(err)
 	}
 	logger := log.New(file, prefix, log.LstdFlags)
-	return &Logger{logger: logger, file: file}
+	return &FileLogger{logger: logger, file: file}
 }
 
-func (l Logger) Close() {
+func (l FileLogger) Close() {
 	err := l.file.Close()
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func (l Logger) Print(v ...interface{}) {
+func (l FileLogger) Print(v ...interface{}) {
 	log.Println(v)
 	l.logger.Println(v)
 }

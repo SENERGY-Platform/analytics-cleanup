@@ -31,14 +31,14 @@ type CleanupService struct {
 	driver     Driver
 	pipeline   PipelineService
 	serving    ServingService
-	logger     Logger
+	logger     FileLogger
 	influx     *Influx
 	kafkaAdmin *KafkaAdmin
 }
 
 const DividerString = "++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
-func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline PipelineService, serving ServingService, logger Logger, kafkaAdmin *KafkaAdmin) *CleanupService {
+func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline PipelineService, serving ServingService, logger FileLogger, kafkaAdmin *KafkaAdmin) *CleanupService {
 	influx := NewInflux()
 	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, serving: serving, logger: logger, influx: influx, kafkaAdmin: kafkaAdmin}
 }

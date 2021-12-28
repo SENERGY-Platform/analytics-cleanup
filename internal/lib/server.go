@@ -46,12 +46,13 @@ func (s Server) CreateServer() {
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./ui/dist/ui")))
 	c := cors.New(
 		cors.Options{
-			AllowedHeaders: []string{"Content-Type", "Authorization"},
+			AllowedHeaders: []string{"Content-Type", "Authorization", "Accept", "Accept-Encoding", "X-CSRF-Token"},
 			AllowedOrigins: []string{"*"},
 			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PUT"},
 		})
 	handler := c.Handler(router)
-	log.Fatal(http.ListenAndServe(GetEnv("SERVERNAME", "localhost")+":"+GetEnv("PORT", "8000"), handler))
+	logger := NewWebLogger(handler, "CALL")
+	log.Fatal(http.ListenAndServe(GetEnv("SERVERNAME", "")+":"+GetEnv("PORT", "8000"), logger))
 }
 
 func (s Server) healthCheck(w http.ResponseWriter, req *http.Request) {

@@ -1,3 +1,4 @@
 export const environment = {
-  production: true
+  production: true,
+  gateway: 'API_BASE_URL'
 };
