@@ -66,7 +66,7 @@ func main() {
 		panic("No driver selected")
 	}
 	keycloak := lib.NewKeycloakService(
-		lib.GetEnv("KEYCLOAK_ADDRESS", "http://test"),
+		lib.GetEnv("KEYCLOAK_URL", "http://test"),
 		lib.GetEnv("KEYCLOAK_CLIENT_ID", "test"),
 		lib.GetEnv("KEYCLOAK_CLIENT_SECRET", "test"),
 		lib.GetEnv("KEYCLOAK_REALM", "test"),
