@@ -40,23 +40,24 @@ func (s Server) CreateServer() {
 	router := mux.NewRouter()
 	s.cs.keycloak.Login()
 	defer s.cs.keycloak.Logout()
-	router.HandleFunc("/api/health", s.healthCheck).Methods("GET")
-	router.HandleFunc("/api/pipeservices", s.getOrphanedPipelineServices).Methods("GET")
-	router.HandleFunc("/api/analyticsworkloads", s.getOrphanedAnalyticsWorkloads).Methods("GET")
-	router.HandleFunc("/api/servingservices", s.getOrphanedServingServices).Methods("GET")
-	router.HandleFunc("/api/servingworkloads", s.getOrphanedServingWorkloads).Methods("GET")
-	router.HandleFunc("/api/kubeservices", s.getOrphanedKubeServices).Methods("GET")
-	router.HandleFunc("/api/influxmeasurements", s.getOrphanedInfluxMeasurements).Methods("GET")
+	apiHandler := router.PathPrefix("/api").Subrouter()
+	apiHandler.HandleFunc("/health", s.healthCheck).Methods("GET")
+	apiHandler.HandleFunc("/pipeservices", s.getOrphanedPipelineServices).Methods("GET")
+	apiHandler.HandleFunc("/analyticsworkloads", s.getOrphanedAnalyticsWorkloads).Methods("GET")
+	apiHandler.HandleFunc("/servingservices", s.getOrphanedServingServices).Methods("GET")
+	apiHandler.HandleFunc("/servingworkloads", s.getOrphanedServingWorkloads).Methods("GET")
+	apiHandler.HandleFunc("/kubeservices", s.getOrphanedKubeServices).Methods("GET")
+	apiHandler.HandleFunc("/influxmeasurements", s.getOrphanedInfluxMeasurements).Methods("GET")
+	apiHandler.Use(accessMiddleware)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./ui/dist/ui")))
 	logger := NewWebLogger(router, "CALL")
-	access := accessMiddleware(logger)
 	c := cors.New(
 		cors.Options{
 			AllowedHeaders: []string{"Content-Type", "Authorization", "Accept", "Accept-Encoding", "X-CSRF-Token"},
 			AllowedOrigins: []string{"*"},
 			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PUT"},
 		})
-	handler := c.Handler(access)
+	handler := c.Handler(logger)
 	log.Fatal(http.ListenAndServe(GetEnv("SERVERNAME", "")+":"+GetEnv("PORT", "8000"), handler))
 }
 
