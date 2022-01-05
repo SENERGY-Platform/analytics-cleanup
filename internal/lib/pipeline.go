@@ -19,7 +19,6 @@ package lib
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -38,27 +37,26 @@ func NewPipelineService(pipelineUrl string, engineUrl string) *PipelineService {
 	return &PipelineService{pipelineUrl: pipelineUrl, engineUrl: engineUrl}
 }
 
-func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes []Pipeline, err error) {
+func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes []Pipeline, errs []error) {
 	request := gorequest.New()
-	resp, body, _ := request.Get(p.pipelineUrl+"/admin/pipeline").Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
-	if resp.StatusCode != 200 {
-		fmt.Println("could not access pipeline registry: "+strconv.Itoa(resp.StatusCode), resp.Body)
-		return pipes, errors.New("could not access pipeline registry")
+	resp, body, errs := request.Get(p.pipelineUrl+"/admin/pipeline").Set("X-UserId", userId).
+		Set("Authorization", "Bearer "+accessToken).End()
+	if len(errs) < 1 {
+		if resp.StatusCode != 200 {
+			return pipes, []error{errors.New("could not access pipeline registry: " + strconv.Itoa(resp.StatusCode) + " " + body)}
+		}
+		errs[0] = json.Unmarshal([]byte(body), &pipes)
 	}
-	err = json.Unmarshal([]byte(body), &pipes)
 	return
 }
 
-func (p PipelineService) DeletePipeline(id string, userId string, accessToken string) (err error) {
+func (p PipelineService) DeletePipeline(id string, userId string, accessToken string) (errs []error) {
 	request := gorequest.New()
-	resp, _, e := request.Delete(p.pipelineUrl+"/admin/pipeline/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
-	if resp.StatusCode != 200 {
-		fmt.Println("could not access pipeline registry: "+strconv.Itoa(resp.StatusCode), resp.Body)
-		err = errors.New("could not access pipeline registry")
-	}
-	if len(e) > 0 {
-		fmt.Println("something went wrong", e)
-		err = errors.New("could not get pipeline from service")
+	resp, body, errs := request.Delete(p.pipelineUrl+"/admin/pipeline/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
+	if len(errs) < 1 {
+		if resp.StatusCode != 200 {
+			errs[0] = errors.New("could not access pipeline registry: " + strconv.Itoa(resp.StatusCode) + " " + body)
+		}
 	}
 	return
 }

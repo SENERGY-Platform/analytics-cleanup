@@ -74,9 +74,10 @@ func (cs CleanupService) getOrphanedPipelineServices() (orphanedPipelineWorkload
 		log.Fatal("GetUserInfo failed:" + err.Error())
 	}
 	if user != nil {
-		pipes, err := cs.pipeline.GetPipelines(*user.Sub, cs.keycloak.GetAccessToken())
-		if err != nil {
-			log.Fatal("GetPipelines failed: " + err.Error())
+		pipes, errs := cs.pipeline.GetPipelines(*user.Sub, cs.keycloak.GetAccessToken())
+		if len(errs) > 0 {
+			log.Printf("GetPipelines failed: %s", errs)
+			return
 		}
 		workloads, err := cs.driver.GetWorkloads("pipelines")
 		if err != nil {
@@ -112,9 +113,9 @@ func (cs CleanupService) deleteOrphanedPipelineServices() {
 			cs.logger.Print(operator.Name)
 			cs.logger.Print(operator.ImageId)
 		}
-		err := cs.pipeline.DeletePipeline(pipe.Id, pipe.UserId, cs.keycloak.GetAccessToken())
-		if err != nil {
-			log.Fatal("DeletePipeline failed:" + err.Error())
+		errs := cs.pipeline.DeletePipeline(pipe.Id, pipe.UserId, cs.keycloak.GetAccessToken())
+		if len(errs) > 0 {
+			log.Printf("DeletePipeline failed: %s", errs)
 		}
 	}
 }
@@ -125,13 +126,14 @@ func (cs CleanupService) getOrphanedAnalyticsWorkloads() (orphanedAnalyticsWorkl
 		log.Fatal("GetUserInfo failed:" + err.Error())
 	}
 	if user != nil {
-		pipes, err := cs.pipeline.GetPipelines(*user.Sub, cs.keycloak.GetAccessToken())
-		if err != nil {
-			log.Fatal("GetPipelines failed: " + err.Error())
+		pipes, errs := cs.pipeline.GetPipelines(*user.Sub, cs.keycloak.GetAccessToken())
+		if len(errs) > 0 {
+			log.Printf("GetPipelines failed: %s", errs)
+			return
 		}
-		workloads, err := cs.driver.GetWorkloads("pipelines")
-		if err != nil {
-			log.Fatal("GetWorkloads for pipelines failed: " + err.Error())
+		workloads, e := cs.driver.GetWorkloads("pipelines")
+		if e != nil {
+			log.Fatal("GetWorkloads for pipelines failed: " + e.Error())
 		}
 		for _, workload := range workloads {
 			if !workloadInPipes(workload, pipes) {
@@ -180,9 +182,10 @@ func (cs CleanupService) getOrphanedServingServices() (orphanedServingWorkloads 
 		log.Fatal("GetUserInfo failed:" + err.Error())
 	}
 	if user != nil {
-		servings, err := cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
-		if err != nil {
-			log.Fatal("GetServingServices failed: " + err.Error())
+		servings, errs := cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
+		if len(errs) > 0 {
+			log.Printf("GetServingServices failed: %s", errs)
+			return
 		}
 
 		workloads, err := cs.driver.GetWorkloads("serving")
@@ -204,9 +207,9 @@ func (cs CleanupService) deleteOrphanedServingServices() {
 	for _, serving := range cs.getOrphanedServingServices() {
 		user := cs._getKeycloakUserById(serving.UserId)
 		cs._logPrint(serving.ID.String(), serving.Name, *user.Username)
-		err := cs.serving.DeleteServingService(serving.ID.String(), serving.UserId, cs.keycloak.GetAccessToken())
-		if err != nil {
-			log.Fatal("DeleteServingService failed:" + err.Error())
+		errs := cs.serving.DeleteServingService(serving.ID.String(), serving.UserId, cs.keycloak.GetAccessToken())
+		if len(errs) > 0 {
+			log.Printf("DeleteServingService failed: %s", errs)
 		}
 	}
 }
@@ -217,14 +220,15 @@ func (cs CleanupService) getOrphanedServingWorkloads() (orphanedServingWorkloads
 		log.Fatal("GetUserInfo failed:" + err.Error())
 	}
 	if user != nil {
-		servings, err := cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
-		if err != nil {
-			log.Fatal("GetServingServices failed: " + err.Error())
+		servings, errs := cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
+		if len(errs) > 0 {
+			log.Printf("GetServingServices failed: %s", errs)
+			return
 		}
 
-		workloads, err := cs.driver.GetWorkloads("serving")
-		if err != nil {
-			log.Fatal("GetWorkloads for serving instances failed: " + err.Error())
+		workloads, e := cs.driver.GetWorkloads("serving")
+		if e != nil {
+			log.Fatal("GetWorkloads for serving instances failed: " + e.Error())
 		}
 		for _, workload := range workloads {
 			if strings.Contains(workload.Name, "kafka-influx") || strings.Contains(workload.Name, "kafka2influx") {

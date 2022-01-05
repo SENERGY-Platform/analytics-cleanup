@@ -19,7 +19,6 @@ package lib
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/parnurzeal/gorequest"
 	"strconv"
 )
@@ -32,25 +31,26 @@ func NewServingService(url string) *ServingService {
 	return &ServingService{url: url}
 }
 
-func (s *ServingService) GetServingServices(userId string, accessToken string) (servings []ServingInstance, err error) {
+func (s *ServingService) GetServingServices(userId string, accessToken string) (servings []ServingInstance, errs []error) {
 	request := gorequest.New()
-	resp, body, _ := request.Get(s.url+"/admin/instance").Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
-	if resp.StatusCode != 200 {
-		fmt.Println("could not access serving service: "+strconv.Itoa(resp.StatusCode), resp.Body)
-		return servings, errors.New("could not access serving service")
+	resp, body, errs := request.Get(s.url+"/admin/instance").Set("X-UserId", userId).
+		Set("Authorization", "Bearer "+accessToken).End()
+	if len(errs) < 1 {
+		if resp.StatusCode != 200 {
+			return servings, []error{errors.New("could not access serving service: " + strconv.Itoa(resp.StatusCode) + " " + body)}
+		}
+		errs[0] = json.Unmarshal([]byte(body), &servings)
 	}
-	err = json.Unmarshal([]byte(body), &servings)
 	return
 }
 
-func (s *ServingService) DeleteServingService(id string, userId string, accessToken string) (err error) {
+func (s *ServingService) DeleteServingService(id string, userId string, accessToken string) (errs []error) {
 	request := gorequest.New()
-	resp, _, e := request.Delete(s.url+"/admin/instance/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
-	if resp.StatusCode != 204 {
-		err = errors.New("could not delete serving serving: " + strconv.Itoa(resp.StatusCode))
-	}
-	if len(e) > 0 {
-		err = errors.New("could not get service from serving service")
+	resp, body, errs := request.Delete(s.url+"/admin/instance/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
+	if len(errs) < 1 {
+		if resp.StatusCode != 204 {
+			errs[0] = errors.New("could not delete serving: " + strconv.Itoa(resp.StatusCode) + " " + body)
+		}
 	}
 	return
 }
