@@ -23,6 +23,8 @@ import { AnalyticsWorkloadsComponent } from './modules/analytics-workloads/analy
 import { ServingsWorkloadsComponent } from './modules/servings-workloads/servings-workloads.component';
 import {KeycloakAngularModule, KeycloakService} from "keycloak-angular";
 import {environment} from "../environments/environment";
+import { ServingsKubeServicesComponent } from './modules/servings-kube-services/servings-kube-services.component';
+import { AnalyticsKubeServicesComponent } from './modules/analytics-kube-services/analytics-kube-services.component';
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>
@@ -46,7 +48,9 @@ function initializeKeycloak(keycloak: KeycloakService) {
     PipesComponent,
     ServingsComponent,
     AnalyticsWorkloadsComponent,
-    ServingsWorkloadsComponent
+    ServingsWorkloadsComponent,
+    ServingsKubeServicesComponent,
+    AnalyticsKubeServicesComponent
   ],
   imports: [
     KeycloakAngularModule,
