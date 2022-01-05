@@ -45,7 +45,10 @@ func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes 
 		if resp.StatusCode != 200 {
 			return pipes, []error{errors.New("could not access pipeline registry: " + strconv.Itoa(resp.StatusCode) + " " + body)}
 		}
-		errs[0] = json.Unmarshal([]byte(body), &pipes)
+		err := json.Unmarshal([]byte(body), &pipes)
+		if err != nil {
+			errs = append(errs, json.Unmarshal([]byte(body), &pipes))
+		}
 	}
 	return
 }
@@ -55,7 +58,7 @@ func (p PipelineService) DeletePipeline(id string, userId string, accessToken st
 	resp, body, errs := request.Delete(p.pipelineUrl+"/admin/pipeline/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
 	if len(errs) < 1 {
 		if resp.StatusCode != 200 {
-			errs[0] = errors.New("could not access pipeline registry: " + strconv.Itoa(resp.StatusCode) + " " + body)
+			errs = append(errs, errors.New("could not access pipeline registry: "+strconv.Itoa(resp.StatusCode)+" "+body))
 		}
 	}
 	return

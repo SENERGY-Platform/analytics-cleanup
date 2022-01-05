@@ -39,7 +39,10 @@ func (s *ServingService) GetServingServices(userId string, accessToken string) (
 		if resp.StatusCode != 200 {
 			return servings, []error{errors.New("could not access serving service: " + strconv.Itoa(resp.StatusCode) + " " + body)}
 		}
-		errs[0] = json.Unmarshal([]byte(body), &servings)
+		err := json.Unmarshal([]byte(body), &servings)
+		if err != nil {
+			errs = append(errs, json.Unmarshal([]byte(body), &servings))
+		}
 	}
 	return
 }
@@ -49,7 +52,7 @@ func (s *ServingService) DeleteServingService(id string, userId string, accessTo
 	resp, body, errs := request.Delete(s.url+"/admin/instance/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
 	if len(errs) < 1 {
 		if resp.StatusCode != 204 {
-			errs[0] = errors.New("could not delete serving: " + strconv.Itoa(resp.StatusCode) + " " + body)
+			errs = append(errs, errors.New("could not delete serving: "+strconv.Itoa(resp.StatusCode)+" "+body))
 		}
 	}
 	return
