@@ -252,15 +252,15 @@ func (cs CleanupService) deleteOrphanedServingWorkloads() {
 	}
 }
 
-func (cs CleanupService) getOrphanedServingKubeServices() []KubeService {
-	workloads, err := cs.driver.GetWorkloads("serving")
+func (cs CleanupService) getOrphanedKubeServices(collection string) []KubeService {
+	workloads, err := cs.driver.GetWorkloads(collection)
 	if err != nil {
-		log.Fatal("GetWorkloads for serving instances failed: " + err.Error())
+		log.Fatal("GetWorkloads for " + collection + " instances failed: " + err.Error())
 	}
 
-	services, err := cs.driver.GetServices("serving")
+	services, err := cs.driver.GetServices(collection)
 	if err != nil {
-		log.Fatal("GetServices for serving instances failed: " + err.Error())
+		log.Fatal("GetServices for " + collection + " instances failed: " + err.Error())
 	}
 	var orphanedServices []KubeService
 	for _, service := range services {
@@ -273,7 +273,7 @@ func (cs CleanupService) getOrphanedServingKubeServices() []KubeService {
 
 func (cs CleanupService) deleteOrphanedServingKubeServices() {
 	cs.logger.Print("************** Orphaned Serving Services ***************")
-	for _, service := range cs.getOrphanedServingKubeServices() {
+	for _, service := range cs.getOrphanedKubeServices("serving") {
 		cs._logPrint(service.Name, service.Id)
 		err := cs.driver.DeleteService(service.Id, "serving")
 		if err != nil {

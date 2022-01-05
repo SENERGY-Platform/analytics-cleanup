@@ -131,7 +131,7 @@ func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, er
 	}
 	resp, body, e := request.End()
 	if resp.StatusCode != http.StatusOK {
-		err = errors.New("could not get services: ")
+		err = errors.New("could not get workloads: ")
 		return
 	}
 	if len(e) > 0 {
@@ -140,7 +140,7 @@ func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, er
 	}
 	var workloadCollection = WorkloadCollection{}
 	err = json.Unmarshal([]byte(body), &workloadCollection)
-	if len(workloadCollection.Data) > 1 {
+	if len(workloadCollection.Data) > 0 {
 		for _, workload := range workloadCollection.Data {
 			workloads = append(workloads, lib.Workload{
 				Id:          workload.Id,

@@ -46,7 +46,8 @@ func (s Server) CreateServer() {
 	apiHandler.HandleFunc("/analyticsworkloads", s.getOrphanedAnalyticsWorkloads).Methods("GET")
 	apiHandler.HandleFunc("/servingservices", s.getOrphanedServingServices).Methods("GET")
 	apiHandler.HandleFunc("/servingworkloads", s.getOrphanedServingWorkloads).Methods("GET")
-	apiHandler.HandleFunc("/kubeservices", s.getOrphanedKubeServices).Methods("GET")
+	apiHandler.HandleFunc("/servingkubeservices", s.getOrphanedServingKubeServices).Methods("GET")
+	apiHandler.HandleFunc("/pipelinekubeservices", s.getOrphanedPipelineKubeServices).Methods("GET")
 	apiHandler.HandleFunc("/influxmeasurements", s.getOrphanedInfluxMeasurements).Methods("GET")
 	apiHandler.Use(accessMiddleware)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./ui/dist/ui")))
@@ -91,10 +92,16 @@ func (s Server) getOrphanedServingWorkloads(w http.ResponseWriter, req *http.Req
 	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedServingWorkloads())
 }
 
-func (s Server) getOrphanedKubeServices(w http.ResponseWriter, req *http.Request) {
+func (s Server) getOrphanedServingKubeServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedServingKubeServices())
+	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedKubeServices("serving"))
+}
+
+func (s Server) getOrphanedPipelineKubeServices(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedKubeServices("pipelines"))
 }
 
 func (s Server) getOrphanedInfluxMeasurements(w http.ResponseWriter, req *http.Request) {
