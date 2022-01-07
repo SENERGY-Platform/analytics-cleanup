@@ -84,6 +84,8 @@ func main() {
 		server := lib.NewServer(service)
 		server.CreateServer()
 	} else {
+		keycloak.Login()
+		defer keycloak.Logout()
 		if lib.GetEnv("CRON_SCHEDULE", "* * * * *") == "false" {
 			logger := lib.NewFileLogger("logs/cleanup.log", "")
 			defer logger.Close()

@@ -21,6 +21,7 @@ import (
 	"github.com/Nerzal/gocloak/v5"
 	_ "github.com/influxdata/influxdb1-client"
 	influxClient "github.com/influxdata/influxdb1-client/v2"
+	uuid "github.com/satori/go.uuid"
 	"log"
 	"strconv"
 	"strings"
@@ -61,7 +62,7 @@ func (cs CleanupService) StartCleanupService() {
 		Check analytics serving
 	****************************/
 
-	//cs.recreateServingServices(servings, services)
+	//cs.recreateServingServices()
 	cs.deleteOrphanedServingServices()
 	cs.deleteOrphanedServingWorkloads()
 	cs.deleteOrphanedServingKubeServices()
@@ -176,27 +177,32 @@ func (cs CleanupService) checkKafkaTopics() {
 	}
 }
 
-func (cs CleanupService) getOrphanedServingServices() (orphanedServingWorkloads []ServingInstance) {
+func (cs CleanupService) getServingInstancesAndWorkloads() (servings []ServingInstance, workloads []Workload) {
 	user, err := cs.keycloak.GetUserInfo()
 	if err != nil {
 		log.Fatal("GetUserInfo failed:" + err.Error())
 	}
 	if user != nil {
-		servings, errs := cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
+		var errs []error
+		servings, errs = cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
 		if len(errs) > 0 {
 			log.Printf("GetServingServices failed: %s", errs)
 			return
 		}
 
-		workloads, err := cs.driver.GetWorkloads("serving")
+		workloads, err = cs.driver.GetWorkloads("serving")
 		if err != nil {
 			log.Fatal("GetWorkloads for serving instances failed: " + err.Error())
 		}
-		for _, serving := range servings {
-			if !servingInWorkloads(serving, workloads) {
-				orphanedServingWorkloads = append(orphanedServingWorkloads, serving)
-			}
+	}
+	return
+}
 
+func (cs CleanupService) getOrphanedServingServices() (orphanedServingWorkloads []ServingInstance) {
+	servings, workloads := cs.getServingInstancesAndWorkloads()
+	for _, serving := range servings {
+		if !servingInWorkloads(serving, workloads) {
+			orphanedServingWorkloads = append(orphanedServingWorkloads, serving)
 		}
 	}
 	return
@@ -328,10 +334,24 @@ func (cs CleanupService) deleteOrphanedInfluxMeasurements() {
 	}
 }
 
-func (cs CleanupService) recreateServingServices(serving []ServingInstance, workloads []Workload) {
+func (cs CleanupService) recreateServingServices() {
+	servings, workloads := cs.getServingInstancesAndWorkloads()
 	cs.logger.Print("**************** Recreate Servings *********************")
-	for _, serving := range serving {
-		if !servingInWorkloads(serving, workloads) {
+	idMissing := false
+	missingUuid, _ := uuid.FromBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
+	for _, serving := range servings {
+		idMissing = false
+		if serving.ApplicationId == missingUuid {
+			serving.ApplicationId = uuid.NewV4()
+			idMissing = true
+		}
+		if idMissing && servingInWorkloads(serving, workloads) {
+			err := cs.driver.DeleteWorkload("kafka2influx-"+serving.ID.String(), "serving")
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		if idMissing || !servingInWorkloads(serving, workloads) {
 			cs._logPrint(serving.ID.String(), serving.Name)
 			if GetEnv("FORCE_DELETE", "") != "" && serving.Database == GetEnv("FORCE_DELETE", "") {
 				cs.influx.forceDeleteMeasurement(serving)
