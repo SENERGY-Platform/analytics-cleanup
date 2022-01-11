@@ -209,9 +209,9 @@ type KubeService struct {
 	TargetWorkloadIds []string `json:"targetWorkloadIds,omitempty"`
 }
 
-type InfluxDatabase struct {
-	Id           string   `json:"id"`
-	Measurements []string `json:"measurements"`
+type InfluxMeasurement struct {
+	Id         string `json:"id"`
+	DatabaseId string `json:"databaseId"`
 }
 
 type OpenidToken struct {

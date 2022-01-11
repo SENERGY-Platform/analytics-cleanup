@@ -23,7 +23,6 @@ import (
 	influxClient "github.com/influxdata/influxdb1-client/v2"
 	uuid "github.com/satori/go.uuid"
 	"log"
-	"sort"
 	"strconv"
 	"strings"
 )
@@ -268,7 +267,7 @@ func (cs CleanupService) deleteOrphanedServingKubeServices() {
 	}
 }
 
-func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurements []InfluxDatabase, err error) {
+func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurements []InfluxMeasurement, err error) {
 	influxData, err := cs._getInfluxData()
 	if err != nil {
 		return
@@ -285,14 +284,7 @@ func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurem
 		for db, measurements := range influxData {
 			for _, measurement := range measurements {
 				if !influxMeasurementInServings(measurement, servings) {
-					idx := sort.Search(len(orphanedInfluxMeasurements), func(i int) bool {
-						return orphanedInfluxMeasurements[i].Id >= db
-					})
-					if idx < len(orphanedInfluxMeasurements) && orphanedInfluxMeasurements[idx].Id == db {
-						orphanedInfluxMeasurements[idx].Measurements = append(orphanedInfluxMeasurements[idx].Measurements, measurement)
-					} else {
-						orphanedInfluxMeasurements = append(orphanedInfluxMeasurements, InfluxDatabase{Id: db, Measurements: []string{measurement}})
-					}
+					orphanedInfluxMeasurements = append(orphanedInfluxMeasurements, InfluxMeasurement{Id: measurement, DatabaseId: db})
 				}
 			}
 		}
@@ -306,14 +298,12 @@ func (cs CleanupService) deleteOrphanedInfluxMeasurements() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for _, db := range influxData {
-		for _, measurement := range db.Measurements {
-			cs.logger.Print(DividerString)
-			cs.logger.Print(db.Id + ":" + measurement)
-			errors := cs.influx.DropMeasurement(measurement, db.Id)
-			if len(errors) > 0 {
-				log.Fatal("could not delete measurement: " + errors[0].Error())
-			}
+	for _, measurement := range influxData {
+		cs.logger.Print(DividerString)
+		cs.logger.Print(measurement.DatabaseId + ":" + measurement.Id)
+		errors := cs.influx.DropMeasurement(measurement.Id, measurement.DatabaseId)
+		if len(errors) > 0 {
+			log.Fatal("could not delete measurement: " + errors[0].Error())
 		}
 	}
 }
