@@ -23,6 +23,7 @@ import (
 	influxClient "github.com/influxdata/influxdb1-client/v2"
 	uuid "github.com/satori/go.uuid"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -177,29 +178,8 @@ func (cs CleanupService) checkKafkaTopics() {
 	}
 }
 
-func (cs CleanupService) getServingInstancesAndWorkloads() (servings []ServingInstance, workloads []Workload) {
-	user, err := cs.keycloak.GetUserInfo()
-	if err != nil {
-		log.Fatal("GetUserInfo failed:" + err.Error())
-	}
-	if user != nil {
-		var errs []error
-		servings, errs = cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
-		if len(errs) > 0 {
-			log.Printf("GetServingServices failed: %s", errs)
-			return
-		}
-
-		workloads, err = cs.driver.GetWorkloads("serving")
-		if err != nil {
-			log.Fatal("GetWorkloads for serving instances failed: " + err.Error())
-		}
-	}
-	return
-}
-
 func (cs CleanupService) getOrphanedServingServices() (orphanedServingWorkloads []ServingInstance) {
-	servings, workloads := cs.getServingInstancesAndWorkloads()
+	servings, workloads := cs._getServingInstancesAndWorkloads()
 	for _, serving := range servings {
 		if !servingInWorkloads(serving, workloads) {
 			orphanedServingWorkloads = append(orphanedServingWorkloads, serving)
@@ -288,8 +268,7 @@ func (cs CleanupService) deleteOrphanedServingKubeServices() {
 	}
 }
 
-func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurements map[string][]string, err error) {
-	orphanedInfluxMeasurements = map[string][]string{}
+func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurements []InfluxDatabase, err error) {
 	influxData, err := cs._getInfluxData()
 	if err != nil {
 		return
@@ -306,10 +285,14 @@ func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurem
 		for db, measurements := range influxData {
 			for _, measurement := range measurements {
 				if !influxMeasurementInServings(measurement, servings) {
-					if orphanedInfluxMeasurements[db] == nil {
-						orphanedInfluxMeasurements[db] = []string{}
+					idx := sort.Search(len(orphanedInfluxMeasurements), func(i int) bool {
+						return orphanedInfluxMeasurements[i].Id >= db
+					})
+					if idx < len(orphanedInfluxMeasurements) && orphanedInfluxMeasurements[idx].Id == db {
+						orphanedInfluxMeasurements[idx].Measurements = append(orphanedInfluxMeasurements[idx].Measurements, measurement)
+					} else {
+						orphanedInfluxMeasurements = append(orphanedInfluxMeasurements, InfluxDatabase{Id: db, Measurements: []string{measurement}})
 					}
-					orphanedInfluxMeasurements[db] = append(orphanedInfluxMeasurements[db], measurement)
 				}
 			}
 		}
@@ -323,11 +306,11 @@ func (cs CleanupService) deleteOrphanedInfluxMeasurements() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	for db, measurements := range influxData {
-		for _, measurement := range measurements {
+	for _, db := range influxData {
+		for _, measurement := range db.Measurements {
 			cs.logger.Print(DividerString)
-			cs.logger.Print(db + ":" + measurement)
-			errors := cs.influx.DropMeasurement(measurement, db)
+			cs.logger.Print(db.Id + ":" + measurement)
+			errors := cs.influx.DropMeasurement(measurement, db.Id)
 			if len(errors) > 0 {
 				log.Fatal("could not delete measurement: " + errors[0].Error())
 			}
@@ -336,7 +319,7 @@ func (cs CleanupService) deleteOrphanedInfluxMeasurements() {
 }
 
 func (cs CleanupService) recreateServingServices() {
-	servings, workloads := cs.getServingInstancesAndWorkloads()
+	servings, workloads := cs._getServingInstancesAndWorkloads()
 	cs.logger.Print("**************** Recreate Servings *********************")
 	idMissing := false
 	missingUuid, _ := uuid.FromBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
@@ -380,6 +363,27 @@ func (cs CleanupService) recreatePipelines(pipelines []Pipeline, workloads []Wor
 		}
 	}
 	return nil
+}
+
+func (cs CleanupService) _getServingInstancesAndWorkloads() (servings []ServingInstance, workloads []Workload) {
+	user, err := cs.keycloak.GetUserInfo()
+	if err != nil {
+		log.Fatal("GetUserInfo failed:" + err.Error())
+	}
+	if user != nil {
+		var errs []error
+		servings, errs = cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
+		if len(errs) > 0 {
+			log.Printf("GetServingServices failed: %s", errs)
+			return
+		}
+
+		workloads, err = cs.driver.GetWorkloads("serving")
+		if err != nil {
+			log.Fatal("GetWorkloads for serving instances failed: " + err.Error())
+		}
+	}
+	return
 }
 
 func (cs CleanupService) _getInfluxData() (influxDbs map[string][]string, err error) {
