@@ -53,9 +53,9 @@ func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes 
 	return
 }
 
-func (p PipelineService) DeletePipeline(id string, userId string, accessToken string) (errs []error) {
+func (p PipelineService) DeletePipeline(id string, accessToken string) (errs []error) {
 	request := gorequest.New()
-	resp, body, errs := request.Delete(p.pipelineUrl+"/admin/pipeline/"+id).Set("X-UserId", userId).Set("Authorization", "Bearer "+accessToken).End()
+	resp, body, errs := request.Delete(p.pipelineUrl+"/admin/pipeline/"+id).Set("Authorization", "Bearer "+accessToken).End()
 	if len(errs) < 1 {
 		if resp.StatusCode != 200 {
 			errs = append(errs, errors.New("could not access pipeline registry: "+strconv.Itoa(resp.StatusCode)+" "+body))

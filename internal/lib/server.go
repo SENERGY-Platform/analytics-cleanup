@@ -43,6 +43,7 @@ func (s Server) CreateServer() {
 	apiHandler := router.PathPrefix("/api").Subrouter()
 	apiHandler.HandleFunc("/health", s.healthCheck).Methods("GET")
 	apiHandler.HandleFunc("/pipeservices", s.getOrphanedPipelineServices).Methods("GET")
+	apiHandler.HandleFunc("/pipeservices/{id}", s.deleteOrphanedPipelineService).Methods("DELETE")
 	apiHandler.HandleFunc("/analyticsworkloads", s.getOrphanedAnalyticsWorkloads).Methods("GET")
 	apiHandler.HandleFunc("/servingservices", s.getOrphanedServingServices).Methods("GET")
 	apiHandler.HandleFunc("/servingworkloads", s.getOrphanedServingWorkloads).Methods("GET")
@@ -72,6 +73,17 @@ func (s Server) getOrphanedPipelineServices(w http.ResponseWriter, req *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedPipelineServices())
+}
+
+func (s Server) deleteOrphanedPipelineService(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	errs := s.cs.deleteOrphanedPipelineService(vars["id"], req.Header.Get("Authorization")[7:])
+	if len(errs) > 0 {
+		log.Printf("deleteOrphanedPipelineService failed: %s", errs)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func (s Server) getOrphanedAnalyticsWorkloads(w http.ResponseWriter, req *http.Request) {

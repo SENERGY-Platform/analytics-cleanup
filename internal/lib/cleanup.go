@@ -105,6 +105,10 @@ func (cs CleanupService) getOrphanedPipelineServices() (orphanedPipelineWorkload
 	return
 }
 
+func (cs CleanupService) deleteOrphanedPipelineService(id string, accessToken string) []error {
+	return cs.pipeline.DeletePipeline(id, accessToken)
+}
+
 func (cs CleanupService) deleteOrphanedPipelineServices() {
 	cs.logger.Print("**************** Orphaned Pipelines ********************")
 	for _, pipe := range cs.getOrphanedPipelineServices() {
@@ -114,7 +118,7 @@ func (cs CleanupService) deleteOrphanedPipelineServices() {
 			cs.logger.Print(operator.Name)
 			cs.logger.Print(operator.ImageId)
 		}
-		errs := cs.pipeline.DeletePipeline(pipe.Id, pipe.UserId, cs.keycloak.GetAccessToken())
+		errs := cs.pipeline.DeletePipeline(pipe.Id, cs.keycloak.GetAccessToken())
 		if len(errs) > 0 {
 			log.Printf("DeletePipeline failed: %s", errs)
 		}
