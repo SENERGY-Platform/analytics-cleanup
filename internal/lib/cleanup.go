@@ -289,6 +289,7 @@ func (cs CleanupService) deleteOrphanedServingKubeServices() {
 }
 
 func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurements map[string][]string, err error) {
+	orphanedInfluxMeasurements = map[string][]string{}
 	influxData, err := cs._getInfluxData()
 	if err != nil {
 		return
