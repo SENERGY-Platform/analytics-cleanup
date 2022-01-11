@@ -69,7 +69,16 @@ export class CleanupService {
       catchError(this.errorHandlerService.handleError("", 'getOrphanedServingKubeServices: Error', null)),
     );
   }
+
+  getOrphanedInfluxMeasurements(): Observable<InfluxDatabase[] | null>  {
+    return this.httpClient.get<InfluxDatabase[]>(environment.gateway + '/influxmeasurements').pipe(
+      map((resp) => resp || null),
+      catchError(this.errorHandlerService.handleError("", 'getOrphanedInfluxMeasurements: Error', null)),
+    );
+  }
 }
+
+
 export interface AnalyticsPipeline {
   id: string;
   name: string;
@@ -96,5 +105,10 @@ export interface KubeService {
   id: string;
   baseType: string;
   name: string
+}
+
+export interface InfluxDatabase {
+  id: string;
+  databaseId: string;
 }
 

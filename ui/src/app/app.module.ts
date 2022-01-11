@@ -25,6 +25,7 @@ import {KeycloakAngularModule, KeycloakService} from "keycloak-angular";
 import {environment} from "../environments/environment";
 import { ServingsKubeServicesComponent } from './modules/servings-kube-services/servings-kube-services.component';
 import { AnalyticsKubeServicesComponent } from './modules/analytics-kube-services/analytics-kube-services.component';
+import {InfluxMeasurementsComponent} from "./modules/influx-measurements/influx-measurements.component";
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>
@@ -50,7 +51,8 @@ function initializeKeycloak(keycloak: KeycloakService) {
     AnalyticsWorkloadsComponent,
     ServingsWorkloadsComponent,
     ServingsKubeServicesComponent,
-    AnalyticsKubeServicesComponent
+    AnalyticsKubeServicesComponent,
+    InfluxMeasurementsComponent
   ],
   imports: [
     KeycloakAngularModule,

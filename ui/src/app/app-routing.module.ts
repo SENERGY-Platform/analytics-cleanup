@@ -7,6 +7,7 @@ import {AnalyticsWorkloadsComponent} from "./modules/analytics-workloads/analyti
 import {ServingsWorkloadsComponent} from "./modules/servings-workloads/servings-workloads.component";
 import {AnalyticsKubeServicesComponent} from "./modules/analytics-kube-services/analytics-kube-services.component";
 import {ServingsKubeServicesComponent} from "./modules/servings-kube-services/servings-kube-services.component";
+import {InfluxMeasurementsComponent} from "./modules/influx-measurements/influx-measurements.component";
 
 const routes: Routes = [
   { path: '', redirectTo: 'home', pathMatch: 'full' },
@@ -17,6 +18,7 @@ const routes: Routes = [
   { path: 'serving-workloads', component: ServingsWorkloadsComponent },
   { path: 'analytics-services', component: AnalyticsKubeServicesComponent },
   { path: 'serving-services', component: ServingsKubeServicesComponent },
+  { path: 'influx-measurements', component: InfluxMeasurementsComponent },
 ];
 
 @NgModule({
