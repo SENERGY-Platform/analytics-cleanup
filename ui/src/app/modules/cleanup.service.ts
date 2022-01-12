@@ -76,8 +76,14 @@ export class CleanupService {
       catchError(this.errorHandlerService.handleError("", 'getOrphanedInfluxMeasurements: Error', null)),
     );
   }
-}
 
+  deletePipeline(id: string): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/pipeservices/' + id)
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deletePipeline: Error', null)));
+  }
+
+}
 
 export interface AnalyticsPipeline {
   id: string;
