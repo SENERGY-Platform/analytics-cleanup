@@ -1,10 +1,9 @@
 import { AfterViewInit, Component, ViewChild } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
-import { MatTable } from '@angular/material/table';
-import { ServingsWorkloadsDataSource } from './servings-workloads-datasource';
-import {CleanupService, KubeWorkload} from "../cleanup.service";
-import {finalize} from "rxjs/operators";
+import {MatTable, MatTableDataSource} from '@angular/material/table';
+import {AnalyticsPipeline, CleanupService, KubeWorkload} from "../cleanup.service";
+import {MatSnackBar} from "@angular/material/snack-bar";
 
 @Component({
   selector: 'app-servings-workloads',
@@ -15,26 +14,38 @@ export class ServingsWorkloadsComponent implements AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatTable) table!: MatTable<KubeWorkload>;
-  dataSource: ServingsWorkloadsDataSource;
+  dataSource: MatTableDataSource<KubeWorkload>;
 
   /** Columns displayed in the table. Columns IDs can be added, removed, or reordered. */
-  displayedColumns = ['id', 'name'];
+  displayedColumns = ['id', 'name', 'actions'];
 
-  constructor(private cService: CleanupService) {
-    this.dataSource = new ServingsWorkloadsDataSource();
+  constructor(private cService: CleanupService,
+              private snackBar: MatSnackBar) {
+    this.dataSource = new MatTableDataSource();
   }
 
   ngAfterViewInit(): void {
-    this.cService.getOrphanedServingWorkloads().pipe(
-      finalize(() => this.dataSource.loadingSubject.next(false))
-    ).subscribe((data: KubeWorkload[] | null) => {
-      this.dataSource.loadingSubject.next(true);
+    this.cService.getOrphanedServingWorkloads().
+    subscribe((data: KubeWorkload[] | null) => {
       if (data != null) {
         this.dataSource.data = data;
       }
       this.dataSource.sort = this.sort;
       this.dataSource.paginator = this.paginator;
       this.table.dataSource = this.dataSource
+    });
+  }
+
+  deleteWorkload(item: KubeWorkload) {
+    this.cService.deleteServingWorkload(item.name).subscribe(() => {
+      const index = this.dataSource.data.indexOf(item);
+      if (index > -1) {
+        this.dataSource.data.splice(index, 1);
+        this.dataSource._updateChangeSubscription();
+      }
+      this.snackBar.open(item.name + ' deleted', undefined, {
+        duration: 2000,
+      });
     });
   }
 }

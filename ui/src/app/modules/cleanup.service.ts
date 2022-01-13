@@ -83,6 +83,36 @@ export class CleanupService {
       .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deletePipeline: Error', null)));
   }
 
+  deleteServing(id: string): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/servingservices/' + id)
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteServing: Error', null)));
+  }
+
+  deleteAnalyticsWorkload(name: string): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/analyticsworkloads/' + name)
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteAnalyticsWorkload: Error', null)));
+  }
+
+  deleteServingWorkload(name: string): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/servingworkloads/' + name)
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteServingWorkload: Error', null)));
+  }
+
+  deleteAnalyticsKubeService(id: string): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/pipelinekubeservices/' + id)
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteAnalyticsKubeService: Error', null)));
+  }
+
+  deleteServingKubeService(id: string): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/servingkubeservices/' + id)
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteServingKubeService: Error', null)));
+  }
+
   deleteInfluxMeasurement(databaseId: string, measurementId: string): Observable<unknown> {
     return this.httpClient
       .delete(environment.gateway + '/influxmeasurements/' + databaseId+'/'+measurementId)
