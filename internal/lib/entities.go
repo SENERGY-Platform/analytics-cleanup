@@ -23,6 +23,9 @@ import (
 	"time"
 )
 
+const PIPELINE = "pipeline"
+const SERVING = "serving"
+
 type Pipeline struct {
 	Id                 string    `bson:"id" json:"id"`
 	Name               string    `json:"name,omitempty"`

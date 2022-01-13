@@ -41,15 +41,21 @@ func (s Server) CreateServer() {
 	s.cs.keycloak.Login()
 	defer s.cs.keycloak.Logout()
 	apiHandler := router.PathPrefix("/api").Subrouter()
-	apiHandler.HandleFunc("/health", s.healthCheck).Methods("GET")
-	apiHandler.HandleFunc("/pipeservices", s.getOrphanedPipelineServices).Methods("GET")
-	apiHandler.HandleFunc("/pipeservices/{id}", s.deleteOrphanedPipelineService).Methods("DELETE")
-	apiHandler.HandleFunc("/analyticsworkloads", s.getOrphanedAnalyticsWorkloads).Methods("GET")
-	apiHandler.HandleFunc("/servingservices", s.getOrphanedServingServices).Methods("GET")
-	apiHandler.HandleFunc("/servingworkloads", s.getOrphanedServingWorkloads).Methods("GET")
-	apiHandler.HandleFunc("/servingkubeservices", s.getOrphanedServingKubeServices).Methods("GET")
-	apiHandler.HandleFunc("/pipelinekubeservices", s.getOrphanedPipelineKubeServices).Methods("GET")
-	apiHandler.HandleFunc("/influxmeasurements", s.getOrphanedInfluxMeasurements).Methods("GET")
+	apiHandler.HandleFunc("/health", s.healthCheck).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/pipeservices", s.getOrphanedPipelineServices).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/pipeservices/{id}", s.deleteOrphanedPipelineService).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/analyticsworkloads", s.getOrphanedAnalyticsWorkloads).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/analyticsworkloads/{name}", s.deleteOrphanedAnalyticsWorkload).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/servingservices", s.getOrphanedServingServices).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/servingservices/{id}", s.deleteOrphanedServingService).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/servingworkloads", s.getOrphanedServingWorkloads).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/servingworkloads/{name}", s.deleteOrphanedServingWorkload).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/servingkubeservices", s.getOrphanedServingKubeServices).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/servingkubeservices/{id}", s.deleteOrphanedServingKubeService).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/pipelinekubeservices", s.getOrphanedPipelineKubeServices).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/pipelinekubeservices/{id}", s.deleteOrphanedPipelineKubeService).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/influxmeasurements", s.getOrphanedInfluxMeasurements).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/influxmeasurements/{databaseId}/{measurementId}", s.deleteOrphanedInfluxMeasurement).Methods(http.MethodDelete)
 	apiHandler.Use(accessMiddleware)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./ui/dist/ui")))
 	logger := NewWebLogger(router, "CALL")
@@ -92,10 +98,32 @@ func (s Server) getOrphanedAnalyticsWorkloads(w http.ResponseWriter, req *http.R
 	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedAnalyticsWorkloads())
 }
 
+func (s Server) deleteOrphanedAnalyticsWorkload(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	err := s.cs.deleteOrphanedAnalyticsWorkload(vars["name"])
+	if err != nil {
+		log.Printf("deleteOrphanedAnalyticsWorkloads failed: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func (s Server) getOrphanedServingServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedServingServices())
+}
+
+func (s Server) deleteOrphanedServingService(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	errs := s.cs.deleteOrphanedServingService(vars["id"], req.Header.Get("Authorization")[7:])
+	if len(errs) > 0 {
+		log.Printf("deleteOrphanedServingService failed: %s", errs)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func (s Server) getOrphanedServingWorkloads(w http.ResponseWriter, req *http.Request) {
@@ -104,16 +132,49 @@ func (s Server) getOrphanedServingWorkloads(w http.ResponseWriter, req *http.Req
 	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedServingWorkloads())
 }
 
+func (s Server) deleteOrphanedServingWorkload(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	err := s.cs.deleteOrphanedServingWorkload(vars["name"])
+	if err != nil {
+		log.Printf("deleteOrphanedServingWorkload failed: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
 func (s Server) getOrphanedServingKubeServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedKubeServices("serving"))
+	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedKubeServices(SERVING))
+}
+
+func (s Server) deleteOrphanedServingKubeService(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	err := s.cs.deleteOrphanedKubeService(SERVING, vars["id"])
+	if err != nil {
+		log.Printf("deleteOrphanedServingKubeService failed: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func (s Server) getOrphanedPipelineKubeServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedKubeServices("pipelines"))
+	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedKubeServices(PIPELINE))
+}
+
+func (s Server) deleteOrphanedPipelineKubeService(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	err := s.cs.deleteOrphanedKubeService(PIPELINE, vars["id"])
+	if err != nil {
+		log.Printf("deleteOrphanedPipelineKubeService failed: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func (s Server) getOrphanedInfluxMeasurements(w http.ResponseWriter, req *http.Request) {
@@ -125,6 +186,17 @@ func (s Server) getOrphanedInfluxMeasurements(w http.ResponseWriter, req *http.R
 	} else {
 		w.WriteHeader(200)
 		_ = json.NewEncoder(w).Encode(measurements)
+	}
+}
+
+func (s Server) deleteOrphanedInfluxMeasurement(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	err := s.cs.deleteOrphanedInfluxMeasurement(vars["measurementId"], vars["databaseId"])
+	if err != nil {
+		log.Printf("deleteOrphanedInfluxMeasurement failed: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 

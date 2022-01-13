@@ -80,7 +80,7 @@ func (cs CleanupService) getOrphanedPipelineServices() (orphanedPipelineWorkload
 			log.Printf("GetPipelines failed: %s", errs)
 			return
 		}
-		workloads, err := cs.driver.GetWorkloads("pipelines")
+		workloads, err := cs.driver.GetWorkloads(PIPELINE)
 		if err != nil {
 			log.Fatal("GetWorkloads for pipelines failed: " + err.Error())
 		}
@@ -136,7 +136,7 @@ func (cs CleanupService) getOrphanedAnalyticsWorkloads() (orphanedAnalyticsWorkl
 			log.Printf("GetPipelines failed: %s", errs)
 			return
 		}
-		workloads, e := cs.driver.GetWorkloads("pipelines")
+		workloads, e := cs.driver.GetWorkloads(PIPELINE)
 		if e != nil {
 			log.Fatal("GetWorkloads for pipelines failed: " + e.Error())
 		}
@@ -149,11 +149,15 @@ func (cs CleanupService) getOrphanedAnalyticsWorkloads() (orphanedAnalyticsWorkl
 	return
 }
 
+func (cs CleanupService) deleteOrphanedAnalyticsWorkload(name string) error {
+	return cs.driver.DeleteWorkload(name, PIPELINE)
+}
+
 func (cs CleanupService) deleteOrphanedAnalyticsWorkloads() {
 	cs.logger.Print("************** Orphaned Pipeline Services **************")
 	for _, workload := range cs.getOrphanedAnalyticsWorkloads() {
 		cs._logPrint(workload.Name, workload.Id, workload.ImageUuid)
-		err := cs.driver.DeleteWorkload(workload.Name, "")
+		err := cs.driver.DeleteWorkload(workload.Name, PIPELINE)
 		if err != nil {
 			log.Fatal("DeleteWorkload failed: " + err.Error())
 		}
@@ -191,12 +195,16 @@ func (cs CleanupService) getOrphanedServingServices() (orphanedServingWorkloads 
 	return
 }
 
+func (cs CleanupService) deleteOrphanedServingService(id string, accessToken string) []error {
+	return cs.serving.DeleteServingService(id, accessToken)
+}
+
 func (cs CleanupService) deleteOrphanedServingServices() {
 	cs.logger.Print("**************** Orphaned Servings *********************")
 	for _, serving := range cs.getOrphanedServingServices() {
 		user := cs._getKeycloakUserById(serving.UserId)
 		cs._logPrint(serving.ID.String(), serving.Name, *user.Username)
-		errs := cs.serving.DeleteServingService(serving.ID.String(), serving.UserId, cs.keycloak.GetAccessToken())
+		errs := cs.serving.DeleteServingService(serving.ID.String(), cs.keycloak.GetAccessToken())
 		if len(errs) > 0 {
 			log.Printf("DeleteServingService failed: %s", errs)
 		}
@@ -215,7 +223,7 @@ func (cs CleanupService) getOrphanedServingWorkloads() (orphanedServingWorkloads
 			return
 		}
 
-		workloads, e := cs.driver.GetWorkloads("serving")
+		workloads, e := cs.driver.GetWorkloads(SERVING)
 		if e != nil {
 			log.Fatal("GetWorkloads for serving instances failed: " + e.Error())
 		}
@@ -230,11 +238,15 @@ func (cs CleanupService) getOrphanedServingWorkloads() (orphanedServingWorkloads
 	return
 }
 
+func (cs CleanupService) deleteOrphanedServingWorkload(name string) error {
+	return cs.driver.DeleteWorkload(name, SERVING)
+}
+
 func (cs CleanupService) deleteOrphanedServingWorkloads() {
 	cs.logger.Print("************** Orphaned Serving Workloads ***************")
 	for _, workload := range cs.getOrphanedServingWorkloads() {
 		cs._logPrint(workload.Name, workload.Id, workload.ImageUuid)
-		err := cs.driver.DeleteWorkload(workload.Name, "serving")
+		err := cs.driver.DeleteWorkload(workload.Name, SERVING)
 		if err != nil {
 			log.Fatal("DeleteWorkload failed: " + err.Error())
 		}
@@ -260,11 +272,15 @@ func (cs CleanupService) getOrphanedKubeServices(collection string) []KubeServic
 	return orphanedServices
 }
 
+func (cs CleanupService) deleteOrphanedKubeService(collection string, id string) error {
+	return cs.driver.DeleteService(id, collection)
+}
+
 func (cs CleanupService) deleteOrphanedServingKubeServices() {
 	cs.logger.Print("************** Orphaned Serving Services ***************")
-	for _, service := range cs.getOrphanedKubeServices("serving") {
+	for _, service := range cs.getOrphanedKubeServices(SERVING) {
 		cs._logPrint(service.Name, service.Id)
-		err := cs.driver.DeleteService(service.Id, "serving")
+		err := cs.driver.DeleteService(service.Id, SERVING)
 		if err != nil {
 			log.Fatal("DeleteService failed: " + err.Error())
 		}
@@ -296,6 +312,10 @@ func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurem
 	return
 }
 
+func (cs CleanupService) deleteOrphanedInfluxMeasurement(measurementId string, databaseId string) []error {
+	return cs.influx.DropMeasurement(measurementId, databaseId)
+}
+
 func (cs CleanupService) deleteOrphanedInfluxMeasurements() {
 	cs.logger.Print("**************** Orphaned Measurements *****************")
 	influxData, err := cs.getOrphanedInfluxMeasurements()
@@ -324,7 +344,7 @@ func (cs CleanupService) recreateServingServices() {
 			idMissing = true
 		}
 		if idMissing && servingInWorkloads(serving, workloads) {
-			err := cs.driver.DeleteWorkload("kafka2influx-"+serving.ID.String(), "serving")
+			err := cs.driver.DeleteWorkload("kafka2influx-"+serving.ID.String(), SERVING)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -372,7 +392,7 @@ func (cs CleanupService) _getServingInstancesAndWorkloads() (servings []ServingI
 			return
 		}
 
-		workloads, err = cs.driver.GetWorkloads("serving")
+		workloads, err = cs.driver.GetWorkloads(SERVING)
 		if err != nil {
 			log.Fatal("GetWorkloads for serving instances failed: " + err.Error())
 		}
