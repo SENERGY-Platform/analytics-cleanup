@@ -2,43 +2,43 @@
   <table mat-table class="full-width-table" matSort aria-label="Elements">
     <!-- Id Column -->
     <ng-container matColumnDef="id">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Id</th>
+      <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>Id</th>
       <td mat-cell *matCellDef="let row">{{row.id}}</td>
     </ng-container>
 
     <!-- Name Column -->
     <ng-container matColumnDef="name">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+      <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
       <td mat-cell *matCellDef="let row">{{row.name}}</td>
     </ng-container>
 
     <!-- UserId Column -->
     <ng-container matColumnDef="UserId">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>UserId</th>
+      <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>UserId</th>
       <td mat-cell *matCellDef="let row">{{row.UserId}}</td>
     </ng-container>
 
     <!-- createdAt Column -->
     <ng-container matColumnDef="createdAt">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>CreatedAt</th>
+      <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>CreatedAt</th>
       <td mat-cell *matCellDef="let row">{{row.createdAt}}</td>
     </ng-container>
 
     <!-- updatedAt Column -->
     <ng-container matColumnDef="updatedAt">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>updatedAt</th>
+      <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>updatedAt</th>
       <td mat-cell *matCellDef="let row">{{row.updatedAt}}</td>
     </ng-container>
 
     <!-- updatedAt Column -->
     <ng-container matColumnDef="updatedAt">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>updatedAt</th>
+      <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>updatedAt</th>
       <td mat-cell *matCellDef="let row">{{row.updatedAt}}</td>
     </ng-container>
 
     <!-- actions Column -->
     <ng-container matColumnDef="actions">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>Actions</th>
+      <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>Actions</th>
       <td mat-cell *matCellDef="let row">
         <button mat-icon-button>
         <mat-icon color="warn" (click)="deletePipe(row)">
