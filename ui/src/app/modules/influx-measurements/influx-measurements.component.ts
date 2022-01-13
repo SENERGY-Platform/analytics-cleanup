@@ -1,10 +1,9 @@
 import { AfterViewInit, Component, ViewChild } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
 import { MatSort } from '@angular/material/sort';
-import { MatTable } from '@angular/material/table';
-import { InfluxMeasurementsDataSource } from './influx-measurements-datasource';
-import {CleanupService, InfluxDatabase, KubeService} from "../cleanup.service";
-import {finalize} from "rxjs/operators";
+import {MatTable, MatTableDataSource} from '@angular/material/table';
+import {CleanupService, InfluxDatabase} from "../cleanup.service";
+import {MatSnackBar} from "@angular/material/snack-bar";
 
 @Component({
   selector: 'app-influx-measurements',
@@ -15,26 +14,38 @@ export class InfluxMeasurementsComponent implements AfterViewInit {
   @ViewChild(MatPaginator) paginator!: MatPaginator;
   @ViewChild(MatSort) sort!: MatSort;
   @ViewChild(MatTable) table!: MatTable<InfluxDatabase>;
-  dataSource: InfluxMeasurementsDataSource;
+  dataSource: MatTableDataSource<InfluxDatabase>;
 
   /** Columns displayed in the table. Columns IDs can be added, removed, or reordered. */
-  displayedColumns = ['id', 'databaseId'];
+  displayedColumns = ['id', 'databaseId', 'actions'];
 
-  constructor(private cService: CleanupService) {
-    this.dataSource = new InfluxMeasurementsDataSource();
+  constructor(private cService: CleanupService,
+              private snackBar: MatSnackBar) {
+    this.dataSource = new MatTableDataSource();
   }
 
   ngAfterViewInit(): void {
-    this.cService.getOrphanedInfluxMeasurements().pipe(
-      finalize(() => this.dataSource.loadingSubject.next(false))
-    ).subscribe((data: InfluxDatabase[] | null) => {
-      this.dataSource.loadingSubject.next(true);
+    this.cService.getOrphanedInfluxMeasurements()
+      .subscribe((data: InfluxDatabase[] | null) => {
       if (data != null) {
         this.dataSource.data = data;
       }
       this.dataSource.sort = this.sort;
       this.dataSource.paginator = this.paginator;
       this.table.dataSource = this.dataSource
+    });
+  }
+
+  deleteMeasurement(item: InfluxDatabase) {
+    this.cService.deleteInfluxMeasurement(item.databaseId, item.id).subscribe(() => {
+      const index = this.dataSource.data.indexOf(item);
+      if (index > -1) {
+        this.dataSource.data.splice(index, 1);
+        this.dataSource._updateChangeSubscription();
+      }
+      this.snackBar.open(item.id + ' deleted', undefined, {
+        duration: 2000,
+      });
     });
   }
 }

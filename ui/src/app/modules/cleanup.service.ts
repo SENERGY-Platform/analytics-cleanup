@@ -83,6 +83,12 @@ export class CleanupService {
       .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deletePipeline: Error', null)));
   }
 
+  deleteInfluxMeasurement(databaseId: string, measurementId: string): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/influxmeasurements/' + databaseId+'/'+measurementId)
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteInfluxMeasurement: Error', null)));
+  }
+
 }
 
 export interface AnalyticsPipeline {
