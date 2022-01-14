@@ -56,6 +56,8 @@ func (s Server) CreateServer() {
 	apiHandler.HandleFunc("/pipelinekubeservices/{id}", s.deleteOrphanedPipelineKubeService).Methods(http.MethodDelete)
 	apiHandler.HandleFunc("/influxmeasurements", s.getOrphanedInfluxMeasurements).Methods(http.MethodGet)
 	apiHandler.HandleFunc("/influxmeasurements/{databaseId}/{measurementId}", s.deleteOrphanedInfluxMeasurement).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/kafkatopics", s.getOrphanedKafkaTopics).Methods(http.MethodGet)
+	apiHandler.HandleFunc("/kafkatopics/{name}", s.deleteOrphanedKafkaTopic).Methods(http.MethodDelete)
 	apiHandler.Use(accessMiddleware)
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./ui/dist/ui")))
 	logger := NewWebLogger(router, "CALL")
@@ -194,6 +196,23 @@ func (s Server) deleteOrphanedInfluxMeasurement(w http.ResponseWriter, req *http
 	err := s.cs.deleteOrphanedInfluxMeasurement(vars["measurementId"], vars["databaseId"])
 	if err != nil {
 		log.Printf("deleteOrphanedInfluxMeasurement failed: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func (s Server) getOrphanedKafkaTopics(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedKafkaTopics)
+}
+
+func (s Server) deleteOrphanedKafkaTopic(w http.ResponseWriter, req *http.Request) {
+	vars := mux.Vars(req)
+	err := s.cs.deleteOrphanedKafkaTopic(vars["name"])
+	if err != nil {
+		log.Printf("deleteOrphanedKafkaTopic failed: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {
 		w.WriteHeader(http.StatusNoContent)
