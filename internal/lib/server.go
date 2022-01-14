@@ -205,7 +205,13 @@ func (s Server) deleteOrphanedInfluxMeasurement(w http.ResponseWriter, req *http
 func (s Server) getOrphanedKafkaTopics(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedKafkaTopics)
+	topics, errs := s.cs.getOrphanedKafkaTopics()
+	if len(errs) > 0 {
+		log.Printf("getOrphanedKafkaTopics failed %s", errs)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	_ = json.NewEncoder(w).Encode(topics)
 }
 
 func (s Server) deleteOrphanedKafkaTopic(w http.ResponseWriter, req *http.Request) {
