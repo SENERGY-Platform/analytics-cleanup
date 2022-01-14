@@ -132,6 +132,30 @@ export class CleanupService {
       .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteKafkaTopic: Error', null)));
   }
 
+  deletePipelines(): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/pipeservices')
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deletePipelines: Error', null)));
+  }
+
+  deleteServings(): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/servingservices')
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteServings: Error', null)));
+  }
+
+  deleteAnalyticsWorkloads(): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/analyticsworkloads')
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteAnalyticsWorkloads: Error', null)));
+  }
+
+  deleteServingWorkloads(): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/servingworkloads')
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteServingWorkloads: Error', null)));
+  }
+
   deleteServingKubeServices(): Observable<KubeService[] | null> {
     return this.httpClient.delete<KubeService[]>(environment.gateway + '/servingkubeservices').pipe(
       map((resp) => resp || null),
@@ -144,6 +168,18 @@ export class CleanupService {
       map((resp) => resp || null),
       catchError(this.errorHandlerService.handleError("", 'deleteAnalyticsKubeServices: Error', null)),
     );
+  }
+
+  deleteInfluxMeasurements(): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/influxmeasurements')
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteInfluxMeasurements: Error', null)));
+  }
+
+  deleteKafkaTopics(): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/kafkatopics')
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteKafkaTopics: Error', null)));
   }
 
 }
