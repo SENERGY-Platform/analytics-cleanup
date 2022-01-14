@@ -164,23 +164,40 @@ func (cs CleanupService) deleteOrphanedAnalyticsWorkloads() {
 	}
 }
 
-func (cs CleanupService) checkKafkaTopics() {
-	cs.logger.Print("************** Orphaned Kafka Topics ***************")
-	envs, err := cs.driver.GetWorkloadEnvs("pipelines")
+func (cs CleanupService) getOrphanedKafkaTopics() (orphanedKafkaTopics []string, errs []error) {
+	envs, err := cs.driver.GetWorkloadEnvs(PIPELINE)
 	if err != nil {
-		log.Fatal("GetWorkloads for pipelines failed: " + err.Error())
+		errs = append(errs, err)
+		return
 	}
 	topics, err := cs.kafkaAdmin.GetTopics()
 	if err != nil {
-		log.Fatal("error in GetTopics", err.Error())
+		errs = append(errs, err)
+		return
 	}
 	for _, topic := range topics {
 		if isInternalAnalyticsTopic(topic) && !pipelineExists(topic, envs) {
-			cs.logger.Print(topic)
-			err = cs.kafkaAdmin.DeleteTopic(topic)
-			if err != nil {
-				log.Fatal("DeleteTopic failed", err.Error())
-			}
+			orphanedKafkaTopics = append(orphanedKafkaTopics, topic)
+		}
+	}
+	return
+}
+
+func (cs CleanupService) deleteOrphanedKafkaTopic(topic string) error {
+	return cs.kafkaAdmin.DeleteTopic(topic)
+}
+
+func (cs CleanupService) deleteOrphanedKafkaTopics() {
+	cs.logger.Print("************** Orphaned Kafka Topics ***************")
+	topics, errs := cs.getOrphanedKafkaTopics()
+	if len(errs) > 0 {
+		log.Fatalf("getOrphanedKafkaTopics failed: %s", errs)
+	}
+	for _, topic := range topics {
+		cs.logger.Print(topic)
+		err := cs.kafkaAdmin.DeleteTopic(topic)
+		if err != nil {
+			log.Fatal("DeleteTopic failed", err.Error())
 		}
 	}
 }
