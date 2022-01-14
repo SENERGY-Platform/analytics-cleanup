@@ -56,7 +56,7 @@ func (cs CleanupService) StartCleanupService() {
 	*/
 	cs.deleteOrphanedPipelineServices()
 	cs.deleteOrphanedAnalyticsWorkloads()
-	cs.checkKafkaTopics()
+	cs.deleteOrphanedKafkaTopics()
 
 	/****************************
 		Check analytics serving
