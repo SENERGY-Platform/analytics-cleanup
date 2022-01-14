@@ -85,7 +85,6 @@ func (s Server) healthCheck(w http.ResponseWriter, req *http.Request) {
 
 func (s Server) getOrphanedPipelineServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	pipes, errs := s.cs.getOrphanedPipelineServices()
 	if len(errs) > 0 {
 		log.Printf("getOrphanedPipelineServices failed %s", errs)
@@ -110,7 +109,6 @@ func (s Server) deleteOrphanedPipelineService(w http.ResponseWriter, req *http.R
 
 func (s Server) deleteOrphanedPipelineServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	pipes, errs := s.cs.deleteOrphanedPipelineServices()
 	if len(errs) > 0 {
 		log.Printf("deleteOrphanedPipelineServices failed %s", errs)
@@ -124,7 +122,6 @@ func (s Server) deleteOrphanedPipelineServices(w http.ResponseWriter, req *http.
 
 func (s Server) getOrphanedAnalyticsWorkloads(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	workloads, errs := s.cs.getOrphanedAnalyticsWorkloads()
 	if len(errs) > 0 {
 		log.Printf("getOrphanedAnalyticsWorkloads failed %s", errs)
@@ -149,7 +146,6 @@ func (s Server) deleteOrphanedAnalyticsWorkload(w http.ResponseWriter, req *http
 
 func (s Server) deleteOrphanedAnalyticsWorkloads(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	workloads, errs := s.cs.deleteOrphanedAnalyticsWorkloads()
 	if len(errs) > 0 {
 		log.Printf("deleteOrphanedAnalyticsWorkloads failed %s", errs)
@@ -180,7 +176,6 @@ func (s Server) deleteOrphanedServingService(w http.ResponseWriter, req *http.Re
 
 func (s Server) deleteOrphanedServingServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	errs := s.cs.deleteOrphanedServingServices()
 	if len(errs) > 0 {
 		log.Printf("deleteOrphanedServingServices failed %s", errs)
@@ -193,7 +188,6 @@ func (s Server) deleteOrphanedServingServices(w http.ResponseWriter, req *http.R
 
 func (s Server) getOrphanedServingWorkloads(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	workloads, errs := s.cs.getOrphanedServingWorkloads()
 	if len(errs) > 0 {
 		log.Printf("getOrphanedServingWorkloads failed %s", errs)
@@ -218,7 +212,6 @@ func (s Server) deleteOrphanedServingWorkload(w http.ResponseWriter, req *http.R
 
 func (s Server) deleteOrphanedServingWorkloads(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	workloads, errs := s.cs.deleteOrphanedServingWorkloads()
 	if len(errs) > 0 {
 		log.Printf("deleteOrphanedServingWorkloads failed %s", errs)
@@ -232,13 +225,13 @@ func (s Server) deleteOrphanedServingWorkloads(w http.ResponseWriter, req *http.
 
 func (s Server) getOrphanedServingKubeServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	services, errs := s.cs.getOrphanedKubeServices(SERVING)
 	if len(errs) > 0 {
 		log.Printf("getOrphanedKafkaTopics failed %s", errs)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(200)
 	_ = json.NewEncoder(w).Encode(services)
 }
 
@@ -267,13 +260,13 @@ func (s Server) deleteOrphanedServingKubeServices(w http.ResponseWriter, req *ht
 
 func (s Server) getOrphanedPipelineKubeServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	services, errs := s.cs.getOrphanedKubeServices(PIPELINE)
 	if len(errs) > 0 {
 		log.Printf("getOrphanedKafkaTopics failed %s", errs)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(200)
 	_ = json.NewEncoder(w).Encode(services)
 }
 
@@ -335,13 +328,13 @@ func (s Server) deleteOrphanedInfluxMeasurements(w http.ResponseWriter, req *htt
 
 func (s Server) getOrphanedKafkaTopics(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
 	topics, errs := s.cs.getOrphanedKafkaTopics()
 	if len(errs) > 0 {
 		log.Printf("getOrphanedKafkaTopics failed %s", errs)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(200)
 	_ = json.NewEncoder(w).Encode(topics)
 }
 

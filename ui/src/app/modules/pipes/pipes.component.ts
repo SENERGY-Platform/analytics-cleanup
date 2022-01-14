@@ -50,4 +50,12 @@ export class PipesComponent implements AfterViewInit {
     });
   }
 
+  deletePipes(){
+    this.cService.deletePipelines().subscribe(() => {
+      this.dataSource.data = [];
+      this.snackBar.open('Pipelines deleted', undefined, {
+        duration: 2000,
+      });
+    })
+  }
 }

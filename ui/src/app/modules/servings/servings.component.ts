@@ -49,4 +49,12 @@ export class ServingsComponent implements AfterViewInit {
     });
   }
 
+  deleteServings(){
+    this.cService.deleteServings().subscribe(() => {
+      this.dataSource.data = [];
+      this.snackBar.open('Servings deleted', undefined, {
+        duration: 2000,
+      });
+    })
+  }
 }
