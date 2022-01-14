@@ -48,4 +48,13 @@ export class InfluxMeasurementsComponent implements AfterViewInit {
       });
     });
   }
+
+  deleteMeasurements(){
+    this.cService.deleteInfluxMeasurements().subscribe(() => {
+      this.dataSource.data = [];
+      this.snackBar.open('Measurements deleted', undefined, {
+        duration: 2000,
+      });
+    })
+  }
 }

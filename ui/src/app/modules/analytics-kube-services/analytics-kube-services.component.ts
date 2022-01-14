@@ -52,7 +52,7 @@ export class AnalyticsKubeServicesComponent implements AfterViewInit {
   deleteServices(){
     this.cService.deleteAnalyticsKubeServices().subscribe(() => {
       this.dataSource.data = [];
-      this.snackBar.open('deleteAnalyticsKubeServices deleted', undefined, {
+      this.snackBar.open('Analytics Kube Services deleted', undefined, {
         duration: 2000,
       });
     })

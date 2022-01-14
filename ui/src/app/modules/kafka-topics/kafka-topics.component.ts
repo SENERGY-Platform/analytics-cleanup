@@ -50,4 +50,13 @@ export class KafkaTopicsComponent implements AfterViewInit {
     });
   }
 
+  deleteTopics(){
+    this.cService.deleteKafkaTopics().subscribe(() => {
+      this.dataSource.data = [];
+      this.snackBar.open('KafkaTopics deleted', undefined, {
+        duration: 2000,
+      });
+    })
+  }
+
 }

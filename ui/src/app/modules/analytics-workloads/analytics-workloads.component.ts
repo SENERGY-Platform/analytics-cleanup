@@ -49,4 +49,13 @@ export class AnalyticsWorkloadsComponent implements AfterViewInit {
     });
   }
 
+  deleteWorkloads(){
+    this.cService.deleteAnalyticsWorkloads().subscribe(() => {
+      this.dataSource.data = [];
+      this.snackBar.open('Analytics Workloads deleted', undefined, {
+        duration: 2000,
+      });
+    })
+  }
+
 }

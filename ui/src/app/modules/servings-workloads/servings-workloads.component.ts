@@ -48,4 +48,13 @@ export class ServingsWorkloadsComponent implements AfterViewInit {
       });
     });
   }
+
+  deleteWorkloads(){
+    this.cService.deleteServingWorkloads().subscribe(() => {
+      this.dataSource.data = [];
+      this.snackBar.open('Serving Workloads deleted', undefined, {
+        duration: 2000,
+      });
+    })
+  }
 }
