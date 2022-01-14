@@ -55,6 +55,7 @@ func (s Server) CreateServer() {
 	apiHandler.HandleFunc("/servingkubeservices", s.deleteOrphanedServingKubeServices).Methods(http.MethodDelete)
 	apiHandler.HandleFunc("/pipelinekubeservices", s.getOrphanedPipelineKubeServices).Methods(http.MethodGet)
 	apiHandler.HandleFunc("/pipelinekubeservices/{id}", s.deleteOrphanedPipelineKubeService).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/pipelinekubeservices", s.deleteOrphanedPipelineKubeServices).Methods(http.MethodDelete)
 	apiHandler.HandleFunc("/influxmeasurements", s.getOrphanedInfluxMeasurements).Methods(http.MethodGet)
 	apiHandler.HandleFunc("/influxmeasurements/{databaseId}/{measurementId}", s.deleteOrphanedInfluxMeasurement).Methods(http.MethodDelete)
 	apiHandler.HandleFunc("/kafkatopics", s.getOrphanedKafkaTopics).Methods(http.MethodGet)
@@ -201,6 +202,18 @@ func (s Server) deleteOrphanedPipelineKubeService(w http.ResponseWriter, req *ht
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func (s Server) deleteOrphanedPipelineKubeServices(w http.ResponseWriter, req *http.Request) {
+	services, errs := s.cs.deleteOrphanedKubeServices(PIPELINE)
+	if len(errs) > 0 {
+		log.Printf("deleteOrphanedPipelineKubeServices failed %s", errs)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(services)
 	}
 }
 

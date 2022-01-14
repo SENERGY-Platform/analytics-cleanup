@@ -139,6 +139,13 @@ export class CleanupService {
     );
   }
 
+  deleteAnalyticsKubeServices(): Observable<KubeService[] | null> {
+    return this.httpClient.delete<KubeService[]>(environment.gateway + '/pipelinekubeservices').pipe(
+      map((resp) => resp || null),
+      catchError(this.errorHandlerService.handleError("", 'deleteAnalyticsKubeServices: Error', null)),
+    );
+  }
+
 }
 
 export interface AnalyticsPipeline {
