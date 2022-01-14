@@ -1,7 +1,7 @@
 <div class="mat-elevation-z8">
   <table mat-table class="full-width-table" matSort aria-label="Elements">
 
-    <!-- Name Column -->
+    <!-- databaseId Column -->
     <ng-container matColumnDef="name">
       <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
       <td mat-cell *matCellDef="let row">{{row}}</td>
@@ -9,7 +9,7 @@
 
     <!-- actions Column -->
     <ng-container matColumnDef="actions">
-      <th scope="col" mat-header-cell *matHeaderCellDef mat-sort-header>Actions</th>
+      <th scope="col" mat-header-cell *matHeaderCellDef>Actions</th>
       <td mat-cell *matCellDef="let row">
         <button mat-icon-button>
           <mat-icon color="warn" (click)="deleteTopic(row)">
