@@ -77,6 +77,13 @@ export class CleanupService {
     );
   }
 
+  getOrphanedKafkaTopics(): Observable<string[] | null>  {
+    return this.httpClient.get<string[]>(environment.gateway + '/kafkatopics').pipe(
+      map((resp) => resp || null),
+      catchError(this.errorHandlerService.handleError("", 'getOrphanedKafkaTopics: Error', null)),
+    );
+  }
+
   deletePipeline(id: string): Observable<unknown> {
     return this.httpClient
       .delete(environment.gateway + '/pipeservices/' + id)
@@ -119,6 +126,11 @@ export class CleanupService {
       .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteInfluxMeasurement: Error', null)));
   }
 
+  deleteKafkaTopic(topic: string): Observable<unknown> {
+    return this.httpClient
+      .delete(environment.gateway + '/kafkatopics/' + topic)
+      .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteKafkaTopic: Error', null)));
+  }
 }
 
 export interface AnalyticsPipeline {

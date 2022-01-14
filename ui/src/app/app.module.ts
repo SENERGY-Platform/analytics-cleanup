@@ -27,6 +27,7 @@ import { ServingsKubeServicesComponent } from './modules/servings-kube-services/
 import { AnalyticsKubeServicesComponent } from './modules/analytics-kube-services/analytics-kube-services.component';
 import {InfluxMeasurementsComponent} from "./modules/influx-measurements/influx-measurements.component";
 import {MatSnackBarModule} from "@angular/material/snack-bar";
+import { KafkaTopicsComponent } from './modules/kafka-topics/kafka-topics.component';
 
 function initializeKeycloak(keycloak: KeycloakService) {
   return () =>
@@ -53,7 +54,8 @@ function initializeKeycloak(keycloak: KeycloakService) {
     ServingsWorkloadsComponent,
     ServingsKubeServicesComponent,
     AnalyticsKubeServicesComponent,
-    InfluxMeasurementsComponent
+    InfluxMeasurementsComponent,
+    KafkaTopicsComponent
   ],
   imports: [
     KeycloakAngularModule,
