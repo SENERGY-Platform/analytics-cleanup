@@ -44,6 +44,7 @@ func (s Server) CreateServer() {
 	apiHandler.HandleFunc("/health", s.healthCheck).Methods(http.MethodGet)
 	apiHandler.HandleFunc("/pipeservices", s.getOrphanedPipelineServices).Methods(http.MethodGet)
 	apiHandler.HandleFunc("/pipeservices/{id}", s.deleteOrphanedPipelineService).Methods(http.MethodDelete)
+	apiHandler.HandleFunc("/pipeservices", s.deleteOrphanedPipelineServices).Methods(http.MethodDelete)
 	apiHandler.HandleFunc("/analyticsworkloads", s.getOrphanedAnalyticsWorkloads).Methods(http.MethodGet)
 	apiHandler.HandleFunc("/analyticsworkloads/{name}", s.deleteOrphanedAnalyticsWorkload).Methods(http.MethodDelete)
 	apiHandler.HandleFunc("/servingservices", s.getOrphanedServingServices).Methods(http.MethodGet)
@@ -82,7 +83,15 @@ func (s Server) healthCheck(w http.ResponseWriter, req *http.Request) {
 func (s Server) getOrphanedPipelineServices(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
-	_ = json.NewEncoder(w).Encode(s.cs.getOrphanedPipelineServices())
+	pipes, errs := s.cs.getOrphanedPipelineServices()
+	if len(errs) > 0 {
+		log.Printf("getOrphanedPipelineServices failed %s", errs)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(pipes)
+	}
 }
 
 func (s Server) deleteOrphanedPipelineService(w http.ResponseWriter, req *http.Request) {
@@ -93,6 +102,20 @@ func (s Server) deleteOrphanedPipelineService(w http.ResponseWriter, req *http.R
 		w.WriteHeader(http.StatusInternalServerError)
 	} else {
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func (s Server) deleteOrphanedPipelineServices(w http.ResponseWriter, req *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	pipes, errs := s.cs.deleteOrphanedPipelineServices()
+	if len(errs) > 0 {
+		log.Printf("deleteOrphanedPipelineServices failed %s", errs)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else {
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(pipes)
 	}
 }
 

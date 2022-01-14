@@ -23,7 +23,6 @@ import (
 	influxClient "github.com/influxdata/influxdb1-client/v2"
 	uuid "github.com/satori/go.uuid"
 	"log"
-	"strconv"
 	"strings"
 )
 
@@ -70,38 +69,37 @@ func (cs CleanupService) StartCleanupService() {
 	//cs.deleteOrphanedInfluxMeasurements()
 }
 
-func (cs CleanupService) getOrphanedPipelineServices() (orphanedPipelineWorkloads []Pipeline) {
+func (cs CleanupService) getOrphanedPipelineServices() (orphanedPipelineWorkloads []Pipeline, errs []error) {
 	user, err := cs.keycloak.GetUserInfo()
 	if err != nil {
 		log.Fatal("GetUserInfo failed:" + err.Error())
 	}
 	if user != nil {
 		pipes, errs := cs.pipeline.GetPipelines(*user.Sub, cs.keycloak.GetAccessToken())
-		if len(errs) > 0 {
-			log.Printf("GetPipelines failed: %s", errs)
-			return
-		}
 		workloads, err := cs.driver.GetWorkloads(PIPELINE)
 		if err != nil {
-			log.Fatal("GetWorkloads for pipelines failed: " + err.Error())
+			errs = append(errs, err)
 		}
-		for _, pipe := range pipes {
-			if !pipeInWorkloads(pipe, workloads) {
-				deletePipe := true
+		if len(errs) < 1 {
+			for _, pipe := range pipes {
+				if !pipeInWorkloads(pipe, workloads) {
+					deletePipe := true
 
-				for _, operator := range pipe.Operators {
-					if operator.DeploymentType == "local" {
-						deletePipe = false
-						break
+					for _, operator := range pipe.Operators {
+						if operator.DeploymentType == "local" {
+							deletePipe = false
+							break
+						}
+					}
+
+					if deletePipe {
+						orphanedPipelineWorkloads = append(orphanedPipelineWorkloads, pipe)
 					}
 				}
 
-				if deletePipe {
-					orphanedPipelineWorkloads = append(orphanedPipelineWorkloads, pipe)
-				}
 			}
-
 		}
+		return
 	}
 	return
 }
@@ -110,20 +108,17 @@ func (cs CleanupService) deleteOrphanedPipelineService(id string, accessToken st
 	return cs.pipeline.DeletePipeline(id, accessToken)
 }
 
-func (cs CleanupService) deleteOrphanedPipelineServices() {
-	cs.logger.Print("**************** Orphaned Pipelines ********************")
-	for _, pipe := range cs.getOrphanedPipelineServices() {
-		user := cs._getKeycloakUserById(pipe.UserId)
-		cs._logPrint(pipe.Id, pipe.Name, strconv.Itoa(len(pipe.Operators)), *user.Username)
-		for _, operator := range pipe.Operators {
-			cs.logger.Print(operator.Name)
-			cs.logger.Print(operator.ImageId)
-		}
-		errs := cs.pipeline.DeletePipeline(pipe.Id, cs.keycloak.GetAccessToken())
-		if len(errs) > 0 {
-			log.Printf("DeletePipeline failed: %s", errs)
+func (cs CleanupService) deleteOrphanedPipelineServices() (pipes []Pipeline, errs []error) {
+	pipes, errs = cs.getOrphanedPipelineServices()
+	if len(errs) < 1 {
+		for _, pipe := range pipes {
+			errs := cs.pipeline.DeletePipeline(pipe.Id, cs.keycloak.GetAccessToken())
+			if len(errs) > 0 {
+				return
+			}
 		}
 	}
+	return
 }
 
 func (cs CleanupService) getOrphanedAnalyticsWorkloads() (orphanedAnalyticsWorkloads []Workload) {
