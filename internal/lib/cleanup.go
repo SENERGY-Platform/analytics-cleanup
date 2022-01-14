@@ -346,7 +346,9 @@ func (cs CleanupService) deleteOrphanedInfluxMeasurements() (errs []error) {
 	}
 	for _, measurement := range influxData {
 		errs = cs.influx.DropMeasurement(measurement.Id, measurement.DatabaseId)
-		return
+		if len(errs) > 0 {
+			return
+		}
 	}
 	return
 }
