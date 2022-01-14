@@ -56,6 +56,7 @@ func (cs CleanupService) StartCleanupService() {
 	*/
 	cs.deleteOrphanedPipelineServices()
 	cs.deleteOrphanedAnalyticsWorkloads()
+	cs.deleteOrphanedKubeServices(PIPELINE)
 	cs.deleteOrphanedKafkaTopics()
 
 	/****************************
@@ -65,7 +66,7 @@ func (cs CleanupService) StartCleanupService() {
 	//cs.recreateServingServices()
 	cs.deleteOrphanedServingServices()
 	cs.deleteOrphanedServingWorkloads()
-	cs.deleteOrphanedServingKubeServices()
+	cs.deleteOrphanedKubeServices(SERVING)
 	//cs.deleteOrphanedInfluxMeasurements()
 }
 
@@ -270,38 +271,42 @@ func (cs CleanupService) deleteOrphanedServingWorkloads() {
 	}
 }
 
-func (cs CleanupService) getOrphanedKubeServices(collection string) []KubeService {
+func (cs CleanupService) getOrphanedKubeServices(collection string) (orphanedServices []KubeService, errs []error) {
 	workloads, err := cs.driver.GetWorkloads(collection)
 	if err != nil {
-		log.Fatal("GetWorkloads for " + collection + " instances failed: " + err.Error())
+		errs = append(errs, err)
 	}
-
 	services, err := cs.driver.GetServices(collection)
 	if err != nil {
-		log.Fatal("GetServices for " + collection + " instances failed: " + err.Error())
+		errs = append(errs, err)
 	}
-	var orphanedServices []KubeService
-	for _, service := range services {
-		if !serviceInWorkloads(service, workloads) {
-			orphanedServices = append(orphanedServices, service)
+	if len(errs) < 1 {
+		for _, service := range services {
+			if !serviceInWorkloads(service, workloads) {
+				orphanedServices = append(orphanedServices, service)
+			}
 		}
 	}
-	return orphanedServices
+	return
 }
 
 func (cs CleanupService) deleteOrphanedKubeService(collection string, id string) error {
 	return cs.driver.DeleteService(id, collection)
 }
 
-func (cs CleanupService) deleteOrphanedServingKubeServices() {
-	cs.logger.Print("************** Orphaned Serving Services ***************")
-	for _, service := range cs.getOrphanedKubeServices(SERVING) {
-		cs._logPrint(service.Name, service.Id)
-		err := cs.driver.DeleteService(service.Id, SERVING)
-		if err != nil {
-			log.Fatal("DeleteService failed: " + err.Error())
+func (cs CleanupService) deleteOrphanedKubeServices(collection string) (deletedKubeServices []KubeService, errs []error) {
+	services, errs := cs.getOrphanedKubeServices(collection)
+	if len(errs) < 1 {
+		for _, service := range services {
+			err := cs.driver.DeleteService(service.Id, collection)
+			if err != nil {
+				errs = append(errs, err)
+			} else {
+				deletedKubeServices = append(deletedKubeServices, service)
+			}
 		}
 	}
+	return
 }
 
 func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurements []InfluxMeasurement, err error) {

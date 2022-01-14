@@ -131,6 +131,14 @@ export class CleanupService {
       .delete(environment.gateway + '/kafkatopics/' + topic)
       .pipe(catchError(this.errorHandlerService.handleError(CleanupService.name, 'deleteKafkaTopic: Error', null)));
   }
+
+  deleteServingKubeServices(): Observable<KubeService[] | null> {
+    return this.httpClient.delete<KubeService[]>(environment.gateway + '/servingkubeservices').pipe(
+      map((resp) => resp || null),
+      catchError(this.errorHandlerService.handleError("", 'deleteServingKubeServices: Error', null)),
+    );
+  }
+
 }
 
 export interface AnalyticsPipeline {

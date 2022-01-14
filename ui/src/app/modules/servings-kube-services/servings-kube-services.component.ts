@@ -48,4 +48,13 @@ export class ServingsKubeServicesComponent implements AfterViewInit {
       });
     });
   }
+
+  deleteServices(){
+    this.cService.deleteServingKubeServices().subscribe(() => {
+      this.dataSource.data = [];
+      this.snackBar.open('ServingKubeServices deleted', undefined, {
+        duration: 2000,
+      });
+    })
+  }
 }
