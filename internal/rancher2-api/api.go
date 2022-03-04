@@ -78,7 +78,7 @@ func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFiel
 		Containers: []Container{{
 			Image:           lib.GetEnv("TRANSFER_IMAGE", "fgseitsrancher.wifa.intern.uni-leipzig.de:5000/kafka-influx:unstable"),
 			Name:            "kafka2influx",
-			Environment:     env,
+			Env:             env,
 			ImagePullPolicy: "Always",
 			Resources:       Resources{Limits: Limits{Cpu: "0.1"}},
 		}},
@@ -146,7 +146,7 @@ func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, er
 				Id:          workload.Id,
 				Name:        workload.Name,
 				ImageUuid:   workload.Containers[0].Image,
-				Environment: workload.Containers[0].Environment,
+				Environment: workload.Containers[0].Env,
 				Labels:      workload.Labels,
 			})
 		}
@@ -174,7 +174,7 @@ func (r *Rancher2) GetWorkloadEnvs(collection string) (envs []map[string]string,
 	if len(workloadCollection.Data) > 1 {
 		for _, workload := range workloadCollection.Data {
 			for _, container := range workload.Containers {
-				envs = append(envs, container.Environment)
+				envs = append(envs, container.Env)
 			}
 		}
 	}
