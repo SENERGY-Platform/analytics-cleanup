@@ -71,6 +71,14 @@ func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFiel
 		env["DATA_FILTER_ID_MAPPING"] = "import_id"
 	}
 
+	var r2Env []Env
+	for k, v := range env {
+		r2Env = append(r2Env, Env{
+			Name:  k,
+			Value: v,
+		})
+	}
+
 	request := gorequest.New().SetBasicAuth(r.accessKey, r.secretKey).TLSClientConfig(&tls.Config{InsecureSkipVerify: true})
 	reqBody := &Request{
 		Name:        r.getServingInstanceName(instance.ID.String()),
@@ -78,7 +86,7 @@ func (r *Rancher2) CreateServingInstance(instance *lib.ServingInstance, dataFiel
 		Containers: []Container{{
 			Image:           lib.GetEnv("TRANSFER_IMAGE", "fgseitsrancher.wifa.intern.uni-leipzig.de:5000/kafka-influx:unstable"),
 			Name:            "kafka2influx",
-			Env:             env,
+			Env:             r2Env,
 			ImagePullPolicy: "Always",
 			Resources:       Resources{Limits: Limits{Cpu: "0.1"}},
 		}},
@@ -142,11 +150,15 @@ func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, er
 	err = json.Unmarshal([]byte(body), &workloadCollection)
 	if len(workloadCollection.Data) > 0 {
 		for _, workload := range workloadCollection.Data {
+			var r2Env map[string]string
+			for _, v := range workload.Containers[0].Env {
+				r2Env[v.Name] = v.Value
+			}
 			workloads = append(workloads, lib.Workload{
 				Id:          workload.Id,
 				Name:        workload.Name,
 				ImageUuid:   workload.Containers[0].Image,
-				Environment: workload.Containers[0].Env,
+				Environment: r2Env,
 				Labels:      workload.Labels,
 			})
 		}
@@ -174,7 +186,11 @@ func (r *Rancher2) GetWorkloadEnvs(collection string) (envs []map[string]string,
 	if len(workloadCollection.Data) > 1 {
 		for _, workload := range workloadCollection.Data {
 			for _, container := range workload.Containers {
-				envs = append(envs, container.Env)
+				var r2Env map[string]string
+				for _, v := range container.Env {
+					r2Env[v.Name] = v.Value
+				}
+				envs = append(envs, r2Env)
 			}
 		}
 	}

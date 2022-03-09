@@ -26,13 +26,19 @@ type Request struct {
 }
 
 type Container struct {
-	Image           string            `json:"image,omitempty"`
-	Name            string            `json:"name,omitempty"`
-	Env             map[string]string `json:"env,omitempty"`
-	ImagePullPolicy string            `json:"imagePullPolicy,omitempty"`
-	Command         []string          `json:"command,omitempty"`
-	Resources       Resources         `json:"resources,omitempty"`
+	Image           string    `json:"image,omitempty"`
+	Name            string    `json:"name,omitempty"`
+	Env             []Env     `json:"env,omitempty"`
+	ImagePullPolicy string    `json:"imagePullPolicy,omitempty"`
+	Command         []string  `json:"command,omitempty"`
+	Resources       Resources `json:"resources,omitempty"`
 }
+
+type Env struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 type Resources struct {
 	Limits Limits `json:"limits,omitempty"`
 }
