@@ -24,7 +24,6 @@ import (
 )
 
 const PIPELINE = "pipeline"
-const SERVING = "serving"
 
 type Pipeline struct {
 	Id                 string    `bson:"id" json:"id"`
@@ -32,13 +31,29 @@ type Pipeline struct {
 	Description        string    `json:"description,omitempty"`
 	FlowId             string    `json:"flowId,omitempty"`
 	Image              string    `json:"image,omitempty"`
-	WindowTime         *int      `json:"windowTime,omitempty"` //missing if not set explicitly, defaults to 30
+	WindowTime         *int      `json:"windowTime,omitempty"`
+	MergeStrategy      string    `json:"mergeStrategy,omitempty"`
 	ConsumeAllMessages bool      `json:"consumeAllMessages,omitempty"`
 	Metrics            bool      `json:"metrics,omitempty"`
 	CreatedAt          time.Time `json:"createdAt,omitempty"`
 	UpdatedAt          time.Time `json:"updatedAt,omitempty"`
 	UserId             string
 	Operators          []Operator `json:"operators,omitempty"`
+}
+
+type Operator struct {
+	Id              string            `json:"id,omitempty"`
+	Name            string            `json:"name,omitempty"`
+	ApplicationId   uuid.UUID         `json:"applicationId,omitempty"`
+	ImageId         string            `json:"imageId,omitempty"`
+	DeploymentType  string            `json:"deploymentType,omitempty"`
+	OperatorId      string            `json:"operatorId,omitempty"`
+	Config          map[string]string `json:"config,omitempty"`
+	OutputTopic     string            `json:"outputTopic,omitempty"`
+	InputTopics     []InputTopic      `json:"inputTopics,omitempty"`
+	InputSelections []InputSelection  `json:"inputSelections,omitempty"`
+	PersistData     bool              `json:"persistData,omitempty"`
+	Cost            uint              `json:"cost"`
 }
 
 func (p *Pipeline) ToRequest() *PipelineRequest {
@@ -61,6 +76,7 @@ func (p *Pipeline) ToRequest() *PipelineRequest {
 			Inputs:          []NodeInput{},
 			Config:          []NodeConfig{},
 			InputSelections: operator.InputSelections,
+			PersistData:     operator.PersistData,
 		}
 		for _, inputTopic := range operator.InputTopics {
 			nodeInput := NodeInput{
@@ -114,6 +130,7 @@ type PipelineNode struct {
 	Inputs          []NodeInput      `json:"inputs,omitempty"`
 	Config          []NodeConfig     `json:"config,omitempty"`
 	InputSelections []InputSelection `json:"inputSelections,omitempty"`
+	PersistData     bool             `json:"persistData,omitempty"`
 }
 
 type NodeConfig struct {
@@ -139,19 +156,6 @@ type NodeInput struct {
 type NodeValue struct {
 	Name string `json:"name,omitempty"`
 	Path string `json:"path,omitempty"`
-}
-
-type Operator struct {
-	Id              string            `json:"id,omitempty"`
-	Name            string            `json:"name,omitempty"`
-	ApplicationId   uuid.UUID         `json:"applicationId,omitempty"`
-	ImageId         string            `json:"imageId,omitempty"`
-	DeploymentType  string            `json:"deploymentType,omitempty"`
-	OperatorId      string            `json:"operatorId,omitempty"`
-	Config          map[string]string `json:"config,omitempty"`
-	OutputTopic     string            `json:"outputTopic,omitempty"`
-	InputTopics     []InputTopic      `json:"inputTopics,omitempty"`
-	InputSelections []InputSelection  `json:"inputSelections,omitempty"`
 }
 
 type InputTopic struct {
