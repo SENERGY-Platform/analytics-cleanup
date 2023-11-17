@@ -18,14 +18,10 @@ import {HomeComponent} from "./modules/home/home.component";
 import { PipesComponent } from './modules/pipes/pipes.component';
 import {HttpClientModule} from "@angular/common/http";
 import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
-import { ServingsComponent } from './modules/servings/servings.component';
 import { AnalyticsWorkloadsComponent } from './modules/analytics-workloads/analytics-workloads.component';
-import { ServingsWorkloadsComponent } from './modules/servings-workloads/servings-workloads.component';
 import {KeycloakAngularModule, KeycloakService} from "keycloak-angular";
 import {environment} from "../environments/environment";
-import { ServingsKubeServicesComponent } from './modules/servings-kube-services/servings-kube-services.component';
 import { AnalyticsKubeServicesComponent } from './modules/analytics-kube-services/analytics-kube-services.component';
-import {InfluxMeasurementsComponent} from "./modules/influx-measurements/influx-measurements.component";
 import {MatSnackBarModule} from "@angular/material/snack-bar";
 import { KafkaTopicsComponent } from './modules/kafka-topics/kafka-topics.component';
 
@@ -49,12 +45,8 @@ function initializeKeycloak(keycloak: KeycloakService) {
     AppComponent,
     HomeComponent,
     PipesComponent,
-    ServingsComponent,
     AnalyticsWorkloadsComponent,
-    ServingsWorkloadsComponent,
-    ServingsKubeServicesComponent,
     AnalyticsKubeServicesComponent,
-    InfluxMeasurementsComponent,
     KafkaTopicsComponent
   ],
   imports: [

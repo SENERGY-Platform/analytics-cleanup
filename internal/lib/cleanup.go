@@ -20,10 +20,7 @@ import (
 	"fmt"
 	"github.com/Nerzal/gocloak/v13"
 	_ "github.com/influxdata/influxdb1-client"
-	influxClient "github.com/influxdata/influxdb1-client/v2"
-	uuid "github.com/satori/go.uuid"
 	"log"
-	"strings"
 )
 
 type CleanupService struct {
@@ -220,74 +217,6 @@ func (cs CleanupService) deleteOrphanedKafkaTopics() (errs []error) {
 	return
 }
 
-func (cs CleanupService) getOrphanedServingServices() (orphanedServingWorkloads []ServingInstance) {
-	servings, workloads := cs._getServingInstancesAndWorkloads()
-	for _, serving := range servings {
-		if !servingInWorkloads(serving, workloads) {
-			orphanedServingWorkloads = append(orphanedServingWorkloads, serving)
-		}
-	}
-	return
-}
-
-func (cs CleanupService) deleteOrphanedServingService(id string, accessToken string) []error {
-	return cs.serving.DeleteServingService(id, accessToken)
-}
-
-func (cs CleanupService) deleteOrphanedServingServices() (errs []error) {
-	for _, serving := range cs.getOrphanedServingServices() {
-		errs = cs.serving.DeleteServingService(serving.ID.String(), cs.keycloak.GetAccessToken())
-		if len(errs) > 0 {
-			return
-		}
-	}
-	return
-}
-
-func (cs CleanupService) getOrphanedServingWorkloads() (orphanedServingWorkloads []Workload, errs []error) {
-	user, err := cs.keycloak.GetUserInfo()
-	if err != nil {
-		log.Fatal("GetUserInfo failed:" + err.Error())
-	}
-	if user != nil {
-		servings, errss := cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
-		if len(errss) > 0 {
-			errs = append(errs, errss...)
-			return
-		}
-
-		workloads, e := cs.driver.GetWorkloads(SERVING)
-		if e != nil {
-			errs = append(errs, e)
-			return
-		}
-		for _, workload := range workloads {
-			if strings.Contains(workload.Name, "kafka-influx") || strings.Contains(workload.Name, "kafka2influx") {
-				if !workloadInServings(workload, servings) {
-					orphanedServingWorkloads = append(orphanedServingWorkloads, workload)
-				}
-			}
-		}
-	}
-	return
-}
-
-func (cs CleanupService) deleteOrphanedServingWorkload(name string) error {
-	return cs.driver.DeleteWorkload(name, SERVING)
-}
-
-func (cs CleanupService) deleteOrphanedServingWorkloads() (servings []Workload, errs []error) {
-	servings, errs = cs.getOrphanedServingWorkloads()
-	for _, workload := range servings {
-		err := cs.driver.DeleteWorkload(workload.Name, SERVING)
-		if err != nil {
-			errs = append(errs, err)
-			return
-		}
-	}
-	return
-}
-
 func (cs CleanupService) getOrphanedKubeServices(collection string) (orphanedServices []KubeService, errs []error) {
 	workloads, err := cs.driver.GetWorkloads(collection)
 	if err != nil {
@@ -326,78 +255,6 @@ func (cs CleanupService) deleteOrphanedKubeServices(collection string) (deletedK
 	return
 }
 
-func (cs CleanupService) getOrphanedInfluxMeasurements() (orphanedInfluxMeasurements []InfluxMeasurement, err error) {
-	influxData, err := cs._getInfluxData()
-	if err != nil {
-		return
-	}
-	user, err := cs.keycloak.GetUserInfo()
-	if err != nil {
-		return
-	}
-	if user != nil {
-		servings, e := cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
-		if e != nil {
-			return
-		}
-		for db, measurements := range influxData {
-			for _, measurement := range measurements {
-				if !influxMeasurementInServings(measurement, servings) {
-					orphanedInfluxMeasurements = append(orphanedInfluxMeasurements, InfluxMeasurement{Id: measurement, DatabaseId: db})
-				}
-			}
-		}
-	}
-	return
-}
-
-func (cs CleanupService) deleteOrphanedInfluxMeasurement(measurementId string, databaseId string) []error {
-	return cs.influx.DropMeasurement(measurementId, databaseId)
-}
-
-func (cs CleanupService) deleteOrphanedInfluxMeasurements() (errs []error) {
-	influxData, err := cs.getOrphanedInfluxMeasurements()
-	if err != nil {
-		errs = append(errs, err)
-		return
-	}
-	for _, measurement := range influxData {
-		errs = cs.influx.DropMeasurement(measurement.Id, measurement.DatabaseId)
-		if len(errs) > 0 {
-			return
-		}
-	}
-	return
-}
-
-func (cs CleanupService) recreateServingServices() {
-	servings, workloads := cs._getServingInstancesAndWorkloads()
-	cs.logger.Print("**************** Recreate Servings *********************")
-	idMissing := false
-	missingUuid, _ := uuid.FromBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0})
-	for _, serving := range servings {
-		idMissing = false
-		if serving.ApplicationId == missingUuid {
-			serving.ApplicationId = uuid.NewV4()
-			idMissing = true
-		}
-		if idMissing && servingInWorkloads(serving, workloads) {
-			err := cs.driver.DeleteWorkload("kafka2influx-"+serving.ID.String(), SERVING)
-			if err != nil {
-				log.Fatal(err)
-			}
-		}
-		if idMissing || !servingInWorkloads(serving, workloads) {
-			cs._logPrint(serving.ID.String(), serving.Name)
-			if GetEnv("FORCE_DELETE", "") != "" && serving.Database == GetEnv("FORCE_DELETE", "") {
-				cs.influx.forceDeleteMeasurement(serving)
-			}
-			cs._create(serving)
-		}
-
-	}
-}
-
 func (cs CleanupService) recreatePipelines(pipelines []Pipeline, workloads []Workload) error {
 	cs.logger.Print("**************** Recreate Pipelines *********************")
 	for _, pipeline := range pipelines {
@@ -415,70 +272,6 @@ func (cs CleanupService) recreatePipelines(pipelines []Pipeline, workloads []Wor
 		}
 	}
 	return nil
-}
-
-func (cs CleanupService) _getServingInstancesAndWorkloads() (servings []ServingInstance, workloads []Workload) {
-	user, err := cs.keycloak.GetUserInfo()
-	if err != nil {
-		log.Fatal("GetUserInfo failed:" + err.Error())
-	}
-	if user != nil {
-		var errs []error
-		servings, errs = cs.serving.GetServingServices(*user.Sub, cs.keycloak.GetAccessToken())
-		if len(errs) > 0 {
-			log.Printf("GetServingServices failed: %s", errs)
-			return
-		}
-
-		workloads, err = cs.driver.GetWorkloads(SERVING)
-		if err != nil {
-			log.Fatal("GetWorkloads for serving instances failed: " + err.Error())
-		}
-	}
-	return
-}
-
-func (cs CleanupService) _getInfluxData() (influxDbs map[string][]string, err error) {
-	q := influxClient.NewQuery("SHOW DATABASES", "", "")
-	response, err := cs.influx.client.Query(q)
-	if err != nil {
-		return
-	}
-	if response.Error() != nil {
-		err = response.Error()
-		return
-	}
-	influxDbs = make(map[string][]string)
-	for _, val := range response.Results[0].Series[0].Values {
-		str := fmt.Sprint(val)
-		influxDbs[strings.Replace(strings.Replace(str, "]", "", -1), "[", "", -1)] = []string{}
-	}
-	for db := range influxDbs {
-		if db != "_internal" {
-			q := influxClient.NewQuery("SHOW MEASUREMENTS", db, "")
-			response, err = cs.influx.client.Query(q)
-			if err != nil {
-				return
-			}
-			if response.Error() != nil {
-				err = response.Error()
-				return
-			}
-
-			if len(response.Results[0].Series) > 0 {
-				for _, measurement := range response.Results[0].Series[0].Values {
-					influxDbs[db] = append(influxDbs[db], measurement[0].(string))
-				}
-			}
-
-		}
-	}
-	return influxDbs, err
-}
-
-func (cs *CleanupService) _create(serving ServingInstance) {
-	dataFields, tagFields := servingGetDataAndTagFields(serving.Values)
-	cs.driver.CreateServingInstance(&serving, dataFields, tagFields)
 }
 
 func (cs *CleanupService) _getKeycloakUserById(id string) (user *gocloak.User) {
