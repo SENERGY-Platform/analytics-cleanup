@@ -83,6 +83,14 @@ func main() {
 		service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
 		server := lib.NewServer(service)
 		server.CreateServer()
+	} else if lib.GetEnv("MODE", "web") == "recreate" {
+		keycloak.Login()
+		defer keycloak.Logout()
+		logger := lib.NewFileLogger("logs/cleanup.log", "")
+		defer logger.Close()
+		service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
+		service.StartCleanupService(true)
+		os.Exit(0)
 	} else {
 		keycloak.Login()
 		defer keycloak.Logout()
@@ -90,7 +98,7 @@ func main() {
 			logger := lib.NewFileLogger("logs/cleanup.log", "")
 			defer logger.Close()
 			service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
-			service.StartCleanupService()
+			service.StartCleanupService(false)
 			os.Exit(0)
 		} else {
 			c := cron.New()
@@ -103,7 +111,7 @@ func main() {
 				logger := lib.NewFileLogger("logs/cleanup-"+currentTime.Format("02-01-2006-15:04:05")+".log", "")
 				defer logger.Close()
 				service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)
-				service.StartCleanupService()
+				service.StartCleanupService(false)
 			})
 			if err != nil {
 				log.Fatal("Error starting job: " + err.Error())

@@ -146,11 +146,12 @@ func (r *Rancher2) GetWorkloads(collection string) (workloads []lib.Workload, er
 		err = errors.New("something went wrong")
 		return
 	}
+
 	var workloadCollection = WorkloadCollection{}
 	err = json.Unmarshal([]byte(body), &workloadCollection)
 	if len(workloadCollection.Data) > 0 {
 		for _, workload := range workloadCollection.Data {
-			var r2Env map[string]string
+			r2Env := map[string]string{}
 			for _, v := range workload.Containers[0].Env {
 				r2Env[v.Name] = v.Value
 			}

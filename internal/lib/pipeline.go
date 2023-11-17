@@ -70,6 +70,7 @@ func (p PipelineService) CreatePipeline(instance *PipelineRequest, userId string
 		return err
 	}
 
+	println(instance.Name)
 	req, err := http.NewRequest(http.MethodPut, p.engineUrl+"/pipeline", bytes.NewBuffer(b))
 	if err != nil {
 		return err

@@ -217,7 +217,7 @@ type InfluxMeasurement struct {
 	DatabaseId string `json:"databaseId"`
 }
 
-type OpenidToken struct {
+type OpenIdToken struct {
 	AccessToken      string    `json:"access_token"`
 	ExpiresIn        float64   `json:"expires_in"`
 	RefreshExpiresIn float64   `json:"refresh_expires_in"`

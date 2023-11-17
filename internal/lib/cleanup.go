@@ -18,7 +18,7 @@ package lib
 
 import (
 	"fmt"
-	"github.com/Nerzal/gocloak/v5"
+	"github.com/Nerzal/gocloak/v13"
 	_ "github.com/influxdata/influxdb1-client"
 	influxClient "github.com/influxdata/influxdb1-client/v2"
 	uuid "github.com/satori/go.uuid"
@@ -43,29 +43,46 @@ func NewCleanupService(keycloak KeycloakService, driver Driver, pipeline Pipelin
 	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, serving: serving, logger: logger, influx: influx, kafkaAdmin: kafkaAdmin}
 }
 
-func (cs CleanupService) StartCleanupService() {
+func (cs CleanupService) StartCleanupService(recreatePipes bool) {
 	/****************************
 	Check analytics pipelines
 	****************************/
-	/*
+	if recreatePipes {
+		info, err := cs.keycloak.GetUserInfo()
+		if err != nil {
+			return
+		}
+
+		pipes, errs := cs.pipeline.GetPipelines(*info.Sub, cs.keycloak.GetAccessToken())
+		if len(errs) > 0 {
+			fmt.Println(errs[0].Error())
+			return
+		}
+
+		workloads, _ := cs.driver.GetWorkloads(PIPELINE)
+
 		err = cs.recreatePipelines(pipes, workloads)
 		if err != nil {
 			log.Fatal("recreatePipelines failed: " + err.Error())
 		}
-	*/
-	cs.deleteOrphanedPipelineServices()
-	cs.deleteOrphanedAnalyticsWorkloads()
-	cs.deleteOrphanedKubeServices(PIPELINE)
-	cs.deleteOrphanedKafkaTopics()
+	}
 
-	/****************************
-		Check analytics serving
-	****************************/
+	/*
+		cs.deleteOrphanedPipelineServices()
+		cs.deleteOrphanedAnalyticsWorkloads()
+		cs.deleteOrphanedKubeServices(PIPELINE)
+		cs.deleteOrphanedKafkaTopics()
+
+		/****************************
+			Check analytics serving
+		****************************/
 
 	//cs.recreateServingServices()
-	cs.deleteOrphanedServingServices()
-	cs.deleteOrphanedServingWorkloads()
-	cs.deleteOrphanedKubeServices(SERVING)
+	/*
+		cs.deleteOrphanedServingServices()
+		cs.deleteOrphanedServingWorkloads()
+		cs.deleteOrphanedKubeServices(SERVING)
+	*/
 	//cs.deleteOrphanedInfluxMeasurements()
 }
 
@@ -385,7 +402,7 @@ func (cs CleanupService) recreatePipelines(pipelines []Pipeline, workloads []Wor
 	cs.logger.Print("**************** Recreate Pipelines *********************")
 	for _, pipeline := range pipelines {
 		if !pipeInWorkloads(pipeline, workloads) {
-			cs._logPrint(pipeline.Id, pipeline.Name)
+			cs._logPrint(pipeline.Id, pipeline.Name, pipeline.UserId)
 			request := pipeline.ToRequest()
 			userToken, err := cs.keycloak.GetImpersonateToken(pipeline.UserId)
 			if err != nil {

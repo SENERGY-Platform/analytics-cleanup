@@ -17,10 +17,11 @@
 package lib
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/Nerzal/gocloak/v5"
+	"github.com/Nerzal/gocloak/v13"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -28,7 +29,7 @@ import (
 )
 
 type KeycloakService struct {
-	client       gocloak.GoCloak
+	client       *gocloak.GoCloak
 	token        *gocloak.JWT
 	clientId     string
 	clientSecret string
@@ -39,12 +40,13 @@ type KeycloakService struct {
 }
 
 func NewKeycloakService(url string, clientId string, clientSecret string, realm string, userName string, password string) *KeycloakService {
-	client := gocloak.NewClient(url)
+	client := gocloak.NewClient(url + "/auth")
 	return &KeycloakService{client, nil, clientId, clientSecret, realm, userName, password, url}
 }
 
 func (k *KeycloakService) Login() {
-	token, err := k.client.Login(k.clientId, k.clientSecret, k.realm, k.userName, k.password)
+	ctx := context.Background()
+	token, err := k.client.Login(ctx, k.clientId, k.clientSecret, k.realm, k.userName, k.password)
 	if err != nil {
 		fmt.Println("Login failed:" + err.Error())
 	}
@@ -52,7 +54,8 @@ func (k *KeycloakService) Login() {
 }
 
 func (k *KeycloakService) Logout() {
-	err := k.client.Logout(k.clientId, k.clientSecret, k.realm, k.token.RefreshToken)
+	ctx := context.Background()
+	err := k.client.Logout(ctx, k.clientId, k.clientSecret, k.realm, k.token.RefreshToken)
 	if err != nil {
 		fmt.Println("Logout failed:" + err.Error())
 	}
@@ -63,12 +66,14 @@ func (k *KeycloakService) GetAccessToken() string {
 }
 
 func (k *KeycloakService) GetUserInfo() (*gocloak.UserInfo, error) {
-	user, err := k.client.GetUserInfo(k.token.AccessToken, k.realm)
+	ctx := context.Background()
+	user, err := k.client.GetUserInfo(ctx, k.token.AccessToken, k.realm)
 	return user, err
 }
 
 func (k *KeycloakService) GetUserByID(id string) (user *gocloak.User, err error) {
-	user, err = k.client.GetUserByID(k.token.AccessToken, k.realm, id)
+	ctx := context.Background()
+	user, err = k.client.GetUserByID(ctx, k.token.AccessToken, k.realm, id)
 	return
 }
 
@@ -88,7 +93,7 @@ func (k *KeycloakService) GetImpersonateToken(userId string) (token string, err 
 		err = errors.New("access denied")
 		return "", resp.Body.Close()
 	}
-	var openIdToken OpenidToken
+	var openIdToken OpenIdToken
 	err = json.NewDecoder(resp.Body).Decode(&openIdToken)
 	if err != nil {
 		return
