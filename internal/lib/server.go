@@ -74,7 +74,6 @@ func (s Server) healthCheck(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s Server) getOrphanedPipelineServices(w http.ResponseWriter, req *http.Request) {
-	println("TEst")
 	w.Header().Set("Content-Type", "application/json")
 	pipes, errs := s.cs.getOrphanedPipelineServices()
 	if len(errs) > 0 {

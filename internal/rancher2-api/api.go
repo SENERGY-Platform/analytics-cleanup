@@ -187,7 +187,7 @@ func (r *Rancher2) GetWorkloadEnvs(collection string) (envs []map[string]string,
 	if len(workloadCollection.Data) > 1 {
 		for _, workload := range workloadCollection.Data {
 			for _, container := range workload.Containers {
-				var r2Env map[string]string
+				r2Env := map[string]string{}
 				for _, v := range container.Env {
 					r2Env[v.Name] = v.Value
 				}

@@ -61,9 +61,11 @@ func workloadInServings(workload Workload, servings []ServingInstance) bool {
 
 func serviceInWorkloads(service KubeService, workloads []Workload) bool {
 	ws := strings.Split(service.TargetWorkloadIds[0], ":")
-	for _, workload := range workloads {
-		if workload.Name == ws[2] {
-			return true
+	if len(ws) == 3 {
+		for _, workload := range workloads {
+			if workload.Name == ws[2] {
+				return true
+			}
 		}
 	}
 	return false
