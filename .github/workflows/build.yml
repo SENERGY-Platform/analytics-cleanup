@@ -54,7 +54,3 @@ jobs:
             ghcr.io/senergy-platform/analytics-cleanup:prod
             smartenergyplatform/analytics-cleanup:${{ steps.tag_version.outputs.new_tag }}
             ghcr.io/senergy-platform/analytics-cleanup:${{ steps.tag_version.outputs.new_tag }}
-      - name: Deploy
-        uses: wei/curl@v1
-        with:
-          args: -X POST -u ${{ secrets.RANCHER_TOKEN }} ${{ secrets.RANCHER_URL }}${{ secrets.RANCHER_SERVICE }}?action=redeploy
