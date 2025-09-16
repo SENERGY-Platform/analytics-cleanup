@@ -29,17 +29,33 @@ import (
 	rancher2_api "github.com/SENERGY-Platform/analytics-cleanup/internal/rancher2-api"
 	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
+	"github.com/y-du/go-env-loader"
 )
 
 func main() {
+	config := lib.Config{
+		FlowEngineApiEndpoint: "localhost",
+		PipelineApiEndpoint:   "locahost",
+		LogLevel:              lib.GetEnv("LOG_LEVEL", "info"),
+	}
+	lib.CreateLogger(config)
+
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Error loading .env file")
+		lib.Logger.Debug("Error loading .env file")
 	}
+
+	if err = envldr.LoadEnv(&config); err != nil {
+		lib.Logger.Error("Error loading env conf vars", "error", err)
+		return
+	}
+	lib.Logger.Info("loaded config", "config", config)
+
 	pipeline := lib.NewPipelineService(
-		lib.GetEnv("PIPELINE_API_ENDPOINT", ""),
-		lib.GetEnv("FLOW_ENGINE_API_ENDPOINT", ""),
+		config.PipelineApiEndpoint,
+		config.FlowEngineApiEndpoint,
 	)
+
 	serving := lib.NewServingService(
 		lib.GetEnv("SERVING_API_ENDPOINT", ""),
 	)

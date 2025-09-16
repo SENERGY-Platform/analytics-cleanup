@@ -17,11 +17,18 @@
 package lib
 
 import (
-	uuid "github.com/satori/go.uuid"
 	"log"
 	"strings"
 	"time"
+
+	uuid "github.com/satori/go.uuid"
 )
+
+type Config struct {
+	PipelineApiEndpoint   string `env_var:"PIPELINE_API_ENDPOINT"`
+	FlowEngineApiEndpoint string `env_var:"FLOW_ENGINE_API_ENDPOINT"`
+	LogLevel              string `env_var:"LOG_LEVEL"`
+}
 
 const PIPELINE = "pipeline"
 
