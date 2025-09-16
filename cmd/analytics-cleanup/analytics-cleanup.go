@@ -18,16 +18,17 @@ package main
 
 import (
 	"fmt"
-	"github.com/SENERGY-Platform/analytics-cleanup/internal/lib"
-	rancher_api "github.com/SENERGY-Platform/analytics-cleanup/internal/rancher-api"
-	rancher2_api "github.com/SENERGY-Platform/analytics-cleanup/internal/rancher2-api"
-	"github.com/joho/godotenv"
-	"github.com/robfig/cron/v3"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/SENERGY-Platform/analytics-cleanup/internal/lib"
+	rancher_api "github.com/SENERGY-Platform/analytics-cleanup/internal/rancher-api"
+	rancher2_api "github.com/SENERGY-Platform/analytics-cleanup/internal/rancher2-api"
+	"github.com/joho/godotenv"
+	"github.com/robfig/cron/v3"
 )
 
 func main() {

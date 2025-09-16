@@ -6,7 +6,7 @@ RUN npm install
 COPY ui .
 RUN npm run build
 
-FROM golang:1.21 AS builder
+FROM golang:1.24 AS builder
 
 COPY . /go/src/app
 WORKDIR /go/src/app
