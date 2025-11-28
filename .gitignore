@@ -3,3 +3,4 @@ vendor
 .env
 logs/*
 !logs/.gitkeep
+config.json

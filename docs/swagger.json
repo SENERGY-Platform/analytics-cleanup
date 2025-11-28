@@ -1,0 +1,195 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "For the cleanup of analytics pipelines.",
+        "title": "Analytics-Cleanup Service",
+        "contact": {},
+        "license": {
+            "name": "Apache-2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "{version}"
+    },
+    "basePath": "/",
+    "paths": {
+        "/pipeservices": {
+            "get": {
+                "description": "Gets all orphaned pipe services",
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Get all orphaned pipe service",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/lib.Pipeline"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "lib.InputSelection": {
+            "type": "object",
+            "properties": {
+                "aspectId": {
+                    "type": "string"
+                },
+                "characteristicIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "functionId": {
+                    "type": "string"
+                },
+                "inputName": {
+                    "type": "string"
+                },
+                "selectableId": {
+                    "type": "string"
+                }
+            }
+        },
+        "lib.InputTopic": {
+            "type": "object",
+            "properties": {
+                "filterType": {
+                    "type": "string"
+                },
+                "filterValue": {
+                    "type": "string"
+                },
+                "mappings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lib.Mapping"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "lib.Mapping": {
+            "type": "object",
+            "properties": {
+                "dest": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "lib.Operator": {
+            "type": "object",
+            "properties": {
+                "applicationId": {
+                    "type": "string"
+                },
+                "config": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "cost": {
+                    "type": "integer"
+                },
+                "deploymentType": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "imageId": {
+                    "type": "string"
+                },
+                "inputSelections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lib.InputSelection"
+                    }
+                },
+                "inputTopics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lib.InputTopic"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "operatorId": {
+                    "type": "string"
+                },
+                "outputTopic": {
+                    "type": "string"
+                },
+                "persistData": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "lib.Pipeline": {
+            "type": "object",
+            "properties": {
+                "consumeAllMessages": {
+                    "type": "boolean"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "flowId": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "mergeStrategy": {
+                    "type": "string"
+                },
+                "metrics": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "operators": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lib.Operator"
+                    }
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                },
+                "windowTime": {
+                    "type": "integer"
+                }
+            }
+        }
+    }
+}
