@@ -5,6 +5,8 @@ go 1.25.0
 require (
 	github.com/IBM/sarama v1.46.3
 	github.com/Nerzal/gocloak/v13 v13.9.0
+	github.com/SENERGY-Platform/analytics-flow-engine/lib v0.0.0-20251112135741-3edca6fddbc1
+	github.com/SENERGY-Platform/analytics-pipeline v0.0.31
 	github.com/SENERGY-Platform/gin-middleware v0.12.0
 	github.com/SENERGY-Platform/go-service-base/config-hdl v1.2.0
 	github.com/SENERGY-Platform/go-service-base/srv-info-hdl v0.2.0
@@ -12,11 +14,11 @@ require (
 	github.com/SENERGY-Platform/go-service-base/util v1.1.0
 	github.com/SENERGY-Platform/service-commons v0.0.0-20251120132821-0c66860f211e
 	github.com/gin-contrib/cors v1.7.6
+	github.com/gin-contrib/requestid v1.0.5
 	github.com/gin-gonic/gin v1.11.0
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/parnurzeal/gorequest v0.3.0
 	github.com/pkg/errors v0.9.1
-	github.com/satori/go.uuid v1.2.0
 )
 
 require (
@@ -31,7 +33,6 @@ require (
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/elazarl/goproxy v0.0.0-20200315184450-1f3cb6622dad // indirect
 	github.com/gabriel-vasile/mimetype v1.4.11 // indirect
-	github.com/gin-contrib/requestid v1.0.5 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -52,7 +53,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -64,20 +64,14 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.57.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20250401214520-65e299d6c5c9 // indirect
-	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
-	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/arch v0.23.0 // indirect
 	golang.org/x/crypto v0.45.0 // indirect
-	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/sync v0.18.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
-	golang.org/x/tools v0.39.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

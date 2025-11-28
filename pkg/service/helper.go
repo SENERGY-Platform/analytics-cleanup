@@ -25,9 +25,11 @@ import (
 
 	"github.com/SENERGY-Platform/analytics-cleanup/lib"
 	"github.com/SENERGY-Platform/analytics-cleanup/pkg/util"
+
+	pipeModels "github.com/SENERGY-Platform/analytics-pipeline/lib"
 )
 
-func pipeInWorkloads(pipe lib.Pipeline, workloads []lib.Workload) bool {
+func pipeInWorkloads(pipe pipeModels.Pipeline, workloads []lib.Workload) bool {
 	for _, workload := range workloads {
 		if strings.Contains(workload.Name, pipe.Id) {
 			return true
@@ -36,7 +38,7 @@ func pipeInWorkloads(pipe lib.Pipeline, workloads []lib.Workload) bool {
 	return false
 }
 
-func workloadInPipes(workload lib.Workload, pipes []lib.Pipeline) bool {
+func workloadInPipes(workload lib.Workload, pipes []pipeModels.Pipeline) bool {
 	for _, pipe := range pipes {
 		if strings.Contains(workload.Name, pipe.Id) {
 			return true

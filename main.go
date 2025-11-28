@@ -77,7 +77,7 @@ func main() {
 			cfg.Rancher2Config.SecretKey,
 			"",
 			cfg.Rancher2Config.ServingProjectId,
-			"",
+			cfg.Rancher2Config.PipelineNamespaceId,
 			cfg.Rancher2Config.PipelineProjectId,
 		)
 	default:

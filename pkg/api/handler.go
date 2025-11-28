@@ -36,7 +36,7 @@ import (
 // @Router /pipeservices [get]
 func getOrphanedPipelineServices(service service.CleanupService) (string, string, gin.HandlerFunc) {
 	return http.MethodGet, "/pipeservices", func(c *gin.Context) {
-		pipes, errs := service.GetOrphanedPipelineServices()
+		pipes, errs := service.GetOrphanedPipelineServices(c.GetString(UserIdKey), c.GetHeader(HeaderAuth)[7:])
 		if len(errs) > 0 {
 			util.Logger.Error("could not get OrphanedPipelineServices", "error", errs)
 			_ = c.Error(errors.New(MessageSomethingWrong))
@@ -60,7 +60,7 @@ func deleteOrphanedPipelineService(service service.CleanupService) (string, stri
 
 func deleteOrphanedPipelineServices(service service.CleanupService) (string, string, gin.HandlerFunc) {
 	return http.MethodDelete, "/pipeservices", func(c *gin.Context) {
-		pipes, errs := service.DeleteOrphanedPipelineServices()
+		pipes, errs := service.DeleteOrphanedPipelineServices(c.Param("id"), c.GetHeader(HeaderAuth)[7:])
 		if len(errs) > 0 {
 			util.Logger.Error("could not delete OrphanedPipelineServices", "error", errs)
 			_ = c.Error(errors.New(MessageSomethingWrong))
@@ -72,7 +72,7 @@ func deleteOrphanedPipelineServices(service service.CleanupService) (string, str
 
 func getOrphanedAnalyticsWorkloads(service service.CleanupService) (string, string, gin.HandlerFunc) {
 	return http.MethodGet, "/analyticsworkloads", func(c *gin.Context) {
-		wls, errs := service.GetOrphanedAnalyticsWorkloads()
+		wls, errs := service.GetOrphanedAnalyticsWorkloads(c.Param("id"), c.GetHeader(HeaderAuth)[7:])
 		if len(errs) > 0 {
 			util.Logger.Error("could not get OrphanedAnalyticsWorkloads", "error", errs)
 			_ = c.Error(errors.New(MessageSomethingWrong))
@@ -96,7 +96,7 @@ func deleteOrphanedAnalyticsWorkload(service service.CleanupService) (string, st
 
 func deleteOrphanedAnalyticsWorkloads(service service.CleanupService) (string, string, gin.HandlerFunc) {
 	return http.MethodDelete, "/analyticsworkloads", func(c *gin.Context) {
-		wls, errs := service.DeleteOrphanedAnalyticsWorkloads()
+		wls, errs := service.DeleteOrphanedAnalyticsWorkloads(c.Param("id"), c.GetHeader(HeaderAuth)[7:])
 		if len(errs) > 0 {
 			util.Logger.Error("could not delete OrphanedAnalyticsWorkloads", "error", errs)
 			_ = c.Error(errors.New(MessageSomethingWrong))

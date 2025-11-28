@@ -27,6 +27,8 @@ import (
 	"github.com/SENERGY-Platform/analytics-cleanup/lib"
 	"github.com/parnurzeal/gorequest"
 	"github.com/pkg/errors"
+
+	pipeModels "github.com/SENERGY-Platform/analytics-pipeline/lib"
 )
 
 type PipelineService struct {
@@ -38,7 +40,7 @@ func NewPipelineService(pipelineUrl string, engineUrl string) *PipelineService {
 	return &PipelineService{pipelineUrl: pipelineUrl, engineUrl: engineUrl}
 }
 
-func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes []lib.Pipeline, errs []error) {
+func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes []pipeModels.Pipeline, errs []error) {
 	request := gorequest.New()
 	resp, body, errs := request.Get(p.pipelineUrl+"/admin/pipeline").Set("X-UserId", userId).
 		Set("Authorization", "Bearer "+accessToken).End()
@@ -46,9 +48,12 @@ func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes 
 		if resp.StatusCode != 200 {
 			return pipes, []error{errors.New("could not access pipeline registry: " + strconv.Itoa(resp.StatusCode) + " " + body)}
 		}
-		err := json.Unmarshal([]byte(body), &pipes)
+		var data pipeModels.PipelinesResponse
+		err := json.Unmarshal([]byte(body), &data)
 		if err != nil {
-			errs = append(errs, json.Unmarshal([]byte(body), &pipes))
+			errs = append(errs, err)
+		} else {
+			pipes = data.Data
 		}
 	}
 	return

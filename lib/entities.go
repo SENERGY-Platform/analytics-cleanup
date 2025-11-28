@@ -21,52 +21,14 @@ import (
 	"strings"
 	"time"
 
-	uuid "github.com/satori/go.uuid"
+	engineModels "github.com/SENERGY-Platform/analytics-flow-engine/lib"
+	pipeModels "github.com/SENERGY-Platform/analytics-pipeline/lib"
 )
-
-type Config struct {
-	PipelineApiEndpoint   string `env_var:"PIPELINE_API_ENDPOINT"`
-	FlowEngineApiEndpoint string `env_var:"FLOW_ENGINE_API_ENDPOINT"`
-	LogLevel              string `env_var:"LOG_LEVEL"`
-	KeycloakUrl           string `env_var:"KEYCLOAK_URL"`
-	KeycloakRealm         string `env_var:"KEYCLOAK_REALM"`
-	KeycloakClientId      string `env_var:"KEYCLOAK_CLIENT_ID"`
-	KeycloakClientSecret  string `env_var:"KEYCLOAK_CLIENT_SECRET"`
-	KeycloakUser          string `env_var:"KEYCLOAK_USER"`
-	KeycloakPassword      string `env_var:"KEYCLOAK_PW"`
-}
 
 const PIPELINE = "pipeline"
 
 type Pipeline struct {
-	Id                 string    `bson:"id" json:"id"`
-	Name               string    `json:"name,omitempty"`
-	Description        string    `json:"description,omitempty"`
-	FlowId             string    `json:"flowId,omitempty"`
-	Image              string    `json:"image,omitempty"`
-	WindowTime         *int      `json:"windowTime,omitempty"`
-	MergeStrategy      string    `json:"mergeStrategy,omitempty"`
-	ConsumeAllMessages bool      `json:"consumeAllMessages,omitempty"`
-	Metrics            bool      `json:"metrics,omitempty"`
-	CreatedAt          time.Time `json:"createdAt,omitempty"`
-	UpdatedAt          time.Time `json:"updatedAt,omitempty"`
-	UserId             string
-	Operators          []Operator `json:"operators,omitempty"`
-}
-
-type Operator struct {
-	Id              string            `json:"id,omitempty"`
-	Name            string            `json:"name,omitempty"`
-	ApplicationId   uuid.UUID         `json:"applicationId,omitempty"`
-	ImageId         string            `json:"imageId,omitempty"`
-	DeploymentType  string            `json:"deploymentType,omitempty"`
-	OperatorId      string            `json:"operatorId,omitempty"`
-	Config          map[string]string `json:"config,omitempty"`
-	OutputTopic     string            `json:"outputTopic,omitempty"`
-	InputTopics     []InputTopic      `json:"inputTopics,omitempty"`
-	InputSelections []InputSelection  `json:"inputSelections,omitempty"`
-	PersistData     bool              `json:"persistData,omitempty"`
-	Cost            uint              `json:"cost"`
+	pipeModels.Pipeline
 }
 
 func (p *Pipeline) ToRequest() *PipelineRequest {
@@ -78,25 +40,23 @@ func (p *Pipeline) ToRequest() *PipelineRequest {
 		WindowTime:         30, // default
 		ConsumeAllMessages: p.ConsumeAllMessages,
 		Metrics:            p.Metrics,
-		Nodes:              []PipelineNode{},
+		Nodes:              []engineModels.PipelineNode{},
 	}
-	if p.WindowTime != nil {
-		r.WindowTime = *p.WindowTime
-	}
+	r.WindowTime = p.WindowTime
 	for _, operator := range p.Operators {
-		node := PipelineNode{
+		node := engineModels.PipelineNode{
 			NodeId:          operator.Id,
-			Inputs:          []NodeInput{},
-			Config:          []NodeConfig{},
+			Inputs:          []engineModels.NodeInput{},
+			Config:          []engineModels.NodeConfig{},
 			InputSelections: operator.InputSelections,
 			PersistData:     operator.PersistData,
 		}
 		for _, inputTopic := range operator.InputTopics {
-			nodeInput := NodeInput{
+			nodeInput := engineModels.NodeInput{
 				FilterType: inputTopic.FilterType,
 				FilterIds:  inputTopic.FilterValue,
 				TopicName:  inputTopic.Name,
-				Values:     []NodeValue{},
+				Values:     []engineModels.NodeValue{},
 			}
 			if nodeInput.FilterType == "DeviceId" {
 				nodeInput.FilterType = "deviceId"
@@ -109,7 +69,7 @@ func (p *Pipeline) ToRequest() *PipelineRequest {
 				nodeInput.FilterIds += ":" + r.Id
 			}
 			for _, mapping := range inputTopic.Mappings {
-				nodeInput.Values = append(nodeInput.Values, NodeValue{
+				nodeInput.Values = append(nodeInput.Values, engineModels.NodeValue{
 					Name: mapping.Dest,
 					Path: mapping.Source,
 				})
@@ -117,7 +77,7 @@ func (p *Pipeline) ToRequest() *PipelineRequest {
 			node.Inputs = append(node.Inputs, nodeInput)
 		}
 		for key, value := range operator.Config {
-			node.Config = append(node.Config, NodeConfig{
+			node.Config = append(node.Config, engineModels.NodeConfig{
 				Name:  key,
 				Value: value,
 			})
@@ -127,61 +87,7 @@ func (p *Pipeline) ToRequest() *PipelineRequest {
 	return &r
 }
 
-type PipelineRequest struct {
-	Id                 string         `json:"id,omitempty"`
-	FlowId             string         `json:"flowId,omitempty"`
-	Name               string         `json:"name,omitempty"`
-	Description        string         `json:"description,omitempty"`
-	WindowTime         int            `json:"windowTime,omitempty"`
-	ConsumeAllMessages bool           `json:"consumeAllMessages,omitempty"`
-	Metrics            bool           `json:"metrics,omitempty"`
-	Nodes              []PipelineNode `json:"nodes,omitempty"`
-}
-
-type PipelineNode struct {
-	NodeId          string           `json:"nodeId,omitempty"`
-	Inputs          []NodeInput      `json:"inputs,omitempty"`
-	Config          []NodeConfig     `json:"config,omitempty"`
-	InputSelections []InputSelection `json:"inputSelections,omitempty"`
-	PersistData     bool             `json:"persistData,omitempty"`
-}
-
-type NodeConfig struct {
-	Name  string `json:"name,omitempty"`
-	Value string `json:"value,omitempty"`
-}
-
-type InputSelection struct {
-	InputName         string   `json:"inputName,omitempty"`
-	AspectId          string   `json:"aspectId,omitempty"`
-	FunctionId        string   `json:"functionId,omitempty"`
-	CharacteristicIds []string `json:"characteristicIds,omitempty"`
-	SelectableId      string   `json:"selectableId,omitempty"`
-}
-
-type NodeInput struct {
-	FilterType string      `json:"filterType,omitempty"`
-	FilterIds  string      `json:"filterIds,omitempty"`
-	TopicName  string      `json:"topicName,omitempty"`
-	Values     []NodeValue `json:"values,omitempty"`
-}
-
-type NodeValue struct {
-	Name string `json:"name,omitempty"`
-	Path string `json:"path,omitempty"`
-}
-
-type InputTopic struct {
-	Name        string    `json:"name,omitempty"`
-	FilterType  string    `json:"filterType,omitempty"`
-	FilterValue string    `json:"filterValue,omitempty"`
-	Mappings    []Mapping `json:"mappings,omitempty"`
-}
-
-type Mapping struct {
-	Dest   string `json:"dest,omitempty"`
-	Source string `json:"source,omitempty"`
-}
+type PipelineRequest engineModels.PipelineRequest
 
 type Workload struct {
 	Id          string            `json:"id"`

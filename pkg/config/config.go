@@ -34,11 +34,12 @@ type KeycloakConfig struct {
 }
 
 type Rancher2Config struct {
-	Endpoint          string `json:"endpoint" env_var:"RANCHER2_ENDPOINT"`
-	AccessKey         string `json:"access_key" env_var:"RANCHER2_ACCESS_KEY"`
-	SecretKey         string `json:"secret_key" env_var:"RANCHER2_SECRET_KEY"`
-	PipelineProjectId string `json:"pipe_project_id" env_var:"RANCHER2_PIPELINE_PROJECT_ID"`
-	ServingProjectId  string `json:"serv_project_id" env_var:"RANCHER2_SERVING_PROJECT_ID"`
+	Endpoint            string `json:"endpoint" env_var:"RANCHER2_ENDPOINT"`
+	AccessKey           string `json:"access_key" env_var:"RANCHER2_ACCESS_KEY"`
+	SecretKey           string `json:"secret_key" env_var:"RANCHER2_SECRET_KEY"`
+	PipelineProjectId   string `json:"pipe_project_id" env_var:"RANCHER2_PIPELINE_PROJECT_ID"`
+	PipelineNamespaceId string `json:"pipe_namespace_id" env_var:"RANCHER2_PIPELINE_NAMESPACE_ID"`
+	ServingProjectId    string `json:"serv_project_id" env_var:"RANCHER2_SERVING_PROJECT_ID"`
 }
 
 type Config struct {
@@ -53,7 +54,7 @@ type Config struct {
 	Mode                  string         `json:"mode" env_var:"MODE"`
 	CronSchedule          string         `json:"cron_schedule" env_var:"CRON_SCHEDULE"`
 	Driver                string         `json:"driver" env_var:"DRIVER"`
-	Rancher2Config        Rancher2Config `json:"rancher2_config" env_var:"RANCHER2_CONFIG"`
+	Rancher2Config        Rancher2Config `json:"rancher2" env_var:"RANCHER2_CONFIG"`
 }
 
 func New(path string) (*Config, error) {
@@ -67,6 +68,9 @@ func New(path string) (*Config, error) {
 			ClientSecret: "local",
 		},
 		Driver: "rancher2",
+		Rancher2Config: Rancher2Config{
+			PipelineNamespaceId: "analytics-pipelines",
+		},
 	}
 	err := sb_config_hdl.Load(&cfg, nil, envTypeParser, nil, path)
 	return &cfg, err

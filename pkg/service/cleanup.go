@@ -24,7 +24,8 @@ import (
 	"github.com/SENERGY-Platform/analytics-cleanup/lib"
 	"github.com/SENERGY-Platform/analytics-cleanup/pkg/apis"
 	"github.com/SENERGY-Platform/analytics-cleanup/pkg/util"
-	_ "github.com/influxdata/influxdb1-client"
+
+	pipeModels "github.com/SENERGY-Platform/analytics-pipeline/lib"
 )
 
 type CleanupService struct {
@@ -72,42 +73,35 @@ func (cs CleanupService) StartCleanupService(recreatePipes bool) {
 	*/
 }
 
-func (cs CleanupService) GetOrphanedPipelineServices() (orphanedPipelineWorkloads []lib.Pipeline, errs []error) {
-	user, err := cs.keycloak.GetUserInfo()
-	if err != nil {
-		log.Fatal("GetUserInfo failed:" + err.Error())
+func (cs CleanupService) GetOrphanedPipelineServices(userId string, authToken string) (orphanedPipelineWorkloads []pipeModels.Pipeline, errs []error) {
+	pipes, errss := cs.pipeline.GetPipelines(userId, authToken)
+	if len(errss) > 0 {
+		errs = append(errs, errss...)
+		return
 	}
-	if user != nil {
-		pipes, errss := cs.pipeline.GetPipelines(*user.Sub, cs.keycloak.GetAccessToken())
-		if len(errss) > 0 {
-			errs = append(errs, errss...)
-			return
-		}
-		workloads, e := cs.driver.GetWorkloads(lib.PIPELINE)
-		if e != nil {
-			errs = append(errs, e)
-			return
-		}
-		if len(errs) < 1 {
-			for _, pipe := range pipes {
-				if !pipeInWorkloads(pipe, workloads) {
-					deletePipe := true
+	workloads, e := cs.driver.GetWorkloads(lib.PIPELINE)
+	if e != nil {
+		errs = append(errs, e)
+		return
+	}
+	if len(errs) < 1 {
+		for _, pipe := range pipes {
+			if !pipeInWorkloads(pipe, workloads) {
+				deletePipe := true
 
-					for _, operator := range pipe.Operators {
-						if operator.DeploymentType == "local" {
-							deletePipe = false
-							break
-						}
-					}
-
-					if deletePipe {
-						orphanedPipelineWorkloads = append(orphanedPipelineWorkloads, pipe)
+				for _, operator := range pipe.Operators {
+					if operator.DeploymentType == "local" {
+						deletePipe = false
+						break
 					}
 				}
 
+				if deletePipe {
+					orphanedPipelineWorkloads = append(orphanedPipelineWorkloads, pipe)
+				}
 			}
+
 		}
-		return
 	}
 	return
 }
@@ -116,8 +110,8 @@ func (cs CleanupService) DeleteOrphanedPipelineService(id string, accessToken st
 	return cs.pipeline.DeletePipeline(id, accessToken)
 }
 
-func (cs CleanupService) DeleteOrphanedPipelineServices() (pipes []lib.Pipeline, errs []error) {
-	pipes, errs = cs.GetOrphanedPipelineServices()
+func (cs CleanupService) DeleteOrphanedPipelineServices(userId string, authToken string) (pipes []pipeModels.Pipeline, errs []error) {
+	pipes, errs = cs.GetOrphanedPipelineServices(userId, authToken)
 	if len(errs) < 1 {
 		for _, pipe := range pipes {
 			errs = cs.pipeline.DeletePipeline(pipe.Id, cs.keycloak.GetAccessToken())
@@ -129,22 +123,16 @@ func (cs CleanupService) DeleteOrphanedPipelineServices() (pipes []lib.Pipeline,
 	return
 }
 
-func (cs CleanupService) GetOrphanedAnalyticsWorkloads() (orphanedAnalyticsWorkloads []lib.Workload, errs []error) {
-	user, err := cs.keycloak.GetUserInfo()
-	if err != nil {
-		log.Fatal("GetUserInfo failed:" + err.Error())
+func (cs CleanupService) GetOrphanedAnalyticsWorkloads(userId string, authToken string) (orphanedAnalyticsWorkloads []lib.Workload, errs []error) {
+	pipes, errs := cs.pipeline.GetPipelines(userId, authToken)
+	workloads, e := cs.driver.GetWorkloads(lib.PIPELINE)
+	if e != nil {
+		errs = append(errs, e)
 	}
-	if user != nil {
-		pipes, errs := cs.pipeline.GetPipelines(*user.Sub, cs.keycloak.GetAccessToken())
-		workloads, e := cs.driver.GetWorkloads(lib.PIPELINE)
-		if e != nil {
-			errs = append(errs, e)
-		}
-		if len(errs) < 1 {
-			for _, workload := range workloads {
-				if !workloadInPipes(workload, pipes) {
-					orphanedAnalyticsWorkloads = append(orphanedAnalyticsWorkloads, workload)
-				}
+	if len(errs) < 1 {
+		for _, workload := range workloads {
+			if !workloadInPipes(workload, pipes) {
+				orphanedAnalyticsWorkloads = append(orphanedAnalyticsWorkloads, workload)
 			}
 		}
 	}
@@ -155,8 +143,8 @@ func (cs CleanupService) DeleteOrphanedAnalyticsWorkload(name string) error {
 	return cs.driver.DeleteWorkload(name, lib.PIPELINE)
 }
 
-func (cs CleanupService) DeleteOrphanedAnalyticsWorkloads() (workloads []lib.Workload, errs []error) {
-	workloads, errs = cs.GetOrphanedAnalyticsWorkloads()
+func (cs CleanupService) DeleteOrphanedAnalyticsWorkloads(userId string, authToken string) (workloads []lib.Workload, errs []error) {
+	workloads, errs = cs.GetOrphanedAnalyticsWorkloads(userId, authToken)
 	if len(errs) < 1 {
 		for _, workload := range workloads {
 			err := cs.driver.DeleteWorkload(workload.Name, lib.PIPELINE)
@@ -244,12 +232,13 @@ func (cs CleanupService) DeleteOrphanedKubeServices(collection string) (deletedK
 	return
 }
 
-func (cs CleanupService) recreatePipelines(pipelines []lib.Pipeline, workloads []lib.Workload) error {
+func (cs CleanupService) recreatePipelines(pipelines []pipeModels.Pipeline, workloads []lib.Workload) error {
 	cs.logger.Print("**************** Recreate Pipelines *********************")
 	for _, pipeline := range pipelines {
 		if !pipeInWorkloads(pipeline, workloads) {
 			cs._logPrint(pipeline.Id, pipeline.Name, pipeline.UserId)
-			request := pipeline.ToRequest()
+			pipe := &lib.Pipeline{Pipeline: pipeline}
+			request := pipe.ToRequest()
 			userToken, err := cs.keycloak.GetImpersonateToken(pipeline.UserId)
 			if err != nil {
 				return err
