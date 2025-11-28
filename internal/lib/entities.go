@@ -28,6 +28,12 @@ type Config struct {
 	PipelineApiEndpoint   string `env_var:"PIPELINE_API_ENDPOINT"`
 	FlowEngineApiEndpoint string `env_var:"FLOW_ENGINE_API_ENDPOINT"`
 	LogLevel              string `env_var:"LOG_LEVEL"`
+	KeycloakUrl           string `env_var:"KEYCLOAK_URL"`
+	KeycloakRealm         string `env_var:"KEYCLOAK_REALM"`
+	KeycloakClientId      string `env_var:"KEYCLOAK_CLIENT_ID"`
+	KeycloakClientSecret  string `env_var:"KEYCLOAK_CLIENT_SECRET"`
+	KeycloakUser          string `env_var:"KEYCLOAK_USER"`
+	KeycloakPassword      string `env_var:"KEYCLOAK_PW"`
 }
 
 const PIPELINE = "pipeline"

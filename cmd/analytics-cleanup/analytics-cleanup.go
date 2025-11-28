@@ -33,17 +33,22 @@ import (
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Println("Error loading .env file")
+	}
 	config := lib.Config{
 		FlowEngineApiEndpoint: "localhost",
 		PipelineApiEndpoint:   "locahost",
 		LogLevel:              lib.GetEnv("LOG_LEVEL", "info"),
+		KeycloakUrl:           "http://test",
+		KeycloakRealm:         "test",
+		KeycloakClientId:      "test",
+		KeycloakClientSecret:  "test",
+		KeycloakUser:          "test",
+		KeycloakPassword:      "test",
 	}
 	lib.CreateLogger(config)
-
-	err := godotenv.Load()
-	if err != nil {
-		lib.Logger.Debug("Error loading .env file")
-	}
 
 	if err = envldr.LoadEnv(&config); err != nil {
 		lib.Logger.Error("Error loading env conf vars", "error", err)
@@ -83,18 +88,18 @@ func main() {
 		panic("No driver selected")
 	}
 	keycloak := lib.NewKeycloakService(
-		lib.GetEnv("KEYCLOAK_URL", "http://test"),
-		lib.GetEnv("KEYCLOAK_CLIENT_ID", "test"),
-		lib.GetEnv("KEYCLOAK_CLIENT_SECRET", "test"),
-		lib.GetEnv("KEYCLOAK_REALM", "test"),
-		lib.GetEnv("KEYCLOAK_USER", "test"),
-		lib.GetEnv("KEYCLOAK_PW", "test"),
+		config.KeycloakUrl,
+		config.KeycloakClientId,
+		config.KeycloakClientSecret,
+		config.KeycloakRealm,
+		config.KeycloakUser,
+		config.KeycloakPassword,
 	)
 
 	kafkaAdmin := lib.NewKafkaAdmin(lib.GetEnv("KAFKA_BOOTSTRAP", "127.0.0.1:9092"))
 
 	if lib.GetEnv("MODE", "web") == "web" {
-		fmt.Println("starting webserver")
+		lib.Logger.Info(fmt.Sprintf("running in web mode"))
 		logger := lib.NewFileLogger("logs/cleanup.log", "")
 		defer logger.Close()
 		service := lib.NewCleanupService(*keycloak, driver, *pipeline, *serving, *logger, kafkaAdmin)

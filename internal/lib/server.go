@@ -17,15 +17,12 @@
 package lib
 
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/rs/cors"
-	"log"
+	"errors"
 	"net/http"
-	"strings"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/SENERGY-Platform/service-commons/pkg/jwt"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 type Server struct {
@@ -36,234 +33,185 @@ func NewServer(cs *CleanupService) *Server {
 	return &Server{cs: *cs}
 }
 
-func (s Server) CreateServer() {
-	router := mux.NewRouter()
+func (s Server) CreateServer() (err error) {
 	s.cs.keycloak.Login()
 	defer s.cs.keycloak.Logout()
-	apiHandler := router.PathPrefix("/api").Subrouter()
-	apiHandler.HandleFunc("/health", s.healthCheck).Methods(http.MethodGet)
-	apiHandler.HandleFunc("/pipeservices", s.getOrphanedPipelineServices).Methods(http.MethodGet)
-	apiHandler.HandleFunc("/pipeservices/{id}", s.deleteOrphanedPipelineService).Methods(http.MethodDelete)
-	apiHandler.HandleFunc("/pipeservices", s.deleteOrphanedPipelineServices).Methods(http.MethodDelete)
-	apiHandler.HandleFunc("/analyticsworkloads", s.getOrphanedAnalyticsWorkloads).Methods(http.MethodGet)
-	apiHandler.HandleFunc("/analyticsworkloads/{name}", s.deleteOrphanedAnalyticsWorkload).Methods(http.MethodDelete)
-	apiHandler.HandleFunc("/analyticsworkloads", s.deleteOrphanedAnalyticsWorkloads).Methods(http.MethodDelete)
-	apiHandler.HandleFunc("/pipelinekubeservices", s.getOrphanedPipelineKubeServices).Methods(http.MethodGet)
-	apiHandler.HandleFunc("/pipelinekubeservices/{id}", s.deleteOrphanedPipelineKubeService).Methods(http.MethodDelete)
-	apiHandler.HandleFunc("/pipelinekubeservices", s.deleteOrphanedPipelineKubeServices).Methods(http.MethodDelete)
-	apiHandler.HandleFunc("/kafkatopics", s.getOrphanedKafkaTopics).Methods(http.MethodGet)
-	apiHandler.HandleFunc("/kafkatopics/{name}", s.deleteOrphanedKafkaTopic).Methods(http.MethodDelete)
-	apiHandler.HandleFunc("/kafkatopics", s.deleteOrphanedKafkaTopics).Methods(http.MethodDelete)
-	apiHandler.Use(accessMiddleware)
-	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./ui/dist/ui")))
-	logger := NewWebLogger(router, "CALL")
-	c := cors.New(
-		cors.Options{
-			AllowedHeaders: []string{"Content-Type", "Authorization", "Accept", "Accept-Encoding", "X-CSRF-Token"},
-			AllowedOrigins: []string{"*"},
-			AllowedMethods: []string{"GET", "POST", "DELETE", "OPTIONS", "PUT"},
+
+	if !DebugMode() {
+		gin.SetMode(gin.ReleaseMode)
+	}
+	port := GetEnv("SERVER_PORT", "8000")
+
+	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "DELETE", "OPTIONS", "PUT"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
+	prefix := r.Group("/api")
+
+	prefix.Use(accessMiddleware())
+
+	prefix.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "pong",
 		})
-	handler := c.Handler(logger)
-	log.Fatal(http.ListenAndServe(GetEnv("SERVERNAME", "")+":"+GetEnv("PORT", "8000"), handler))
-}
-
-func (s Server) healthCheck(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_ = json.NewEncoder(w).Encode(Response{Message: "OK"})
-}
-
-func (s Server) getOrphanedPipelineServices(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	pipes, errs := s.cs.getOrphanedPipelineServices()
-	if len(errs) > 0 {
-		log.Printf("getOrphanedPipelineServices failed %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	} else {
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(pipes)
-	}
-}
-
-func (s Server) deleteOrphanedPipelineService(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	errs := s.cs.deleteOrphanedPipelineService(vars["id"], req.Header.Get("Authorization")[7:])
-	if len(errs) > 0 {
-		log.Printf("deleteOrphanedPipelineService failed: %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-func (s Server) deleteOrphanedPipelineServices(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	pipes, errs := s.cs.deleteOrphanedPipelineServices()
-	if len(errs) > 0 {
-		log.Printf("deleteOrphanedPipelineServices failed %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	} else {
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(pipes)
-	}
-}
-
-func (s Server) getOrphanedAnalyticsWorkloads(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	workloads, errs := s.cs.getOrphanedAnalyticsWorkloads()
-	if len(errs) > 0 {
-		log.Printf("getOrphanedAnalyticsWorkloads failed %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	} else {
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(workloads)
-	}
-}
-
-func (s Server) deleteOrphanedAnalyticsWorkload(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	err := s.cs.deleteOrphanedAnalyticsWorkload(vars["name"])
-	if err != nil {
-		log.Printf("deleteOrphanedAnalyticsWorkloads failed: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-func (s Server) deleteOrphanedAnalyticsWorkloads(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	workloads, errs := s.cs.deleteOrphanedAnalyticsWorkloads()
-	if len(errs) > 0 {
-		log.Printf("deleteOrphanedAnalyticsWorkloads failed %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	} else {
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(workloads)
-	}
-}
-
-func (s Server) getOrphanedPipelineKubeServices(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	services, errs := s.cs.getOrphanedKubeServices(PIPELINE)
-	if len(errs) > 0 {
-		log.Printf("getOrphanedKafkaTopics failed %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(200)
-	_ = json.NewEncoder(w).Encode(services)
-}
-
-func (s Server) deleteOrphanedPipelineKubeService(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	err := s.cs.deleteOrphanedKubeService(PIPELINE, vars["id"])
-	if err != nil {
-		log.Printf("deleteOrphanedPipelineKubeService failed: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-func (s Server) deleteOrphanedPipelineKubeServices(w http.ResponseWriter, req *http.Request) {
-	services, errs := s.cs.deleteOrphanedKubeServices(PIPELINE)
-	if len(errs) > 0 {
-		log.Printf("deleteOrphanedPipelineKubeServices failed %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	} else {
-		w.WriteHeader(http.StatusOK)
-		_ = json.NewEncoder(w).Encode(services)
-	}
-}
-
-func (s Server) getOrphanedKafkaTopics(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	topics, errs := s.cs.getOrphanedKafkaTopics()
-	if len(errs) > 0 {
-		log.Printf("getOrphanedKafkaTopics failed %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(200)
-	_ = json.NewEncoder(w).Encode(topics)
-}
-
-func (s Server) deleteOrphanedKafkaTopic(w http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-	err := s.cs.deleteOrphanedKafkaTopic(vars["name"])
-	if err != nil {
-		log.Printf("deleteOrphanedKafkaTopic failed: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-func (s Server) deleteOrphanedKafkaTopics(w http.ResponseWriter, req *http.Request) {
-	errs := s.cs.deleteOrphanedKafkaTopics()
-	if len(errs) > 0 {
-		log.Printf("deleteOrphanedKafkaTopics failed: %s", errs)
-		w.WriteHeader(http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-func accessMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if checkUserAdmin(r) {
-			next.ServeHTTP(w, r)
-		} else {
-			http.Error(w, "Forbidden", http.StatusForbidden)
-		}
 	})
-}
 
-func checkUserAdmin(req *http.Request) (access bool) {
-	access = false
-	if req.Header.Get("Authorization") != "" {
-		token, claims := parseJWTToken(req.Header.Get("Authorization")[7:])
-		if token.Valid {
-			if StringInSlice("admin", claims.RealmAccess["roles"]) {
-				log.Printf("Authenticated user %s\n", claims.Sub)
-				access = true
-			}
-		} else {
-			log.Printf("Invalid token for user %s\n", claims.Sub)
+	prefix.GET("/pipeservices", func(c *gin.Context) {
+		pipes, errs := s.cs.getOrphanedPipelineServices()
+		if len(errs) > 0 {
+			Logger.Error("getOrphanedPipelineServices failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
 		}
+		c.JSON(http.StatusOK, pipes)
+	})
+
+	prefix.DELETE("/pipeservices/:id", func(c *gin.Context) {
+		errs := s.cs.deleteOrphanedPipelineService(c.Param("id"), c.GetHeader("Authorization")[7:])
+		if len(errs) > 0 {
+			Logger.Error("deleteOrphanedPipelineService failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	prefix.DELETE("/pipeservices", func(c *gin.Context) {
+		pipes, errs := s.cs.deleteOrphanedPipelineServices()
+		if len(errs) > 0 {
+			Logger.Error("deleteOrphanedPipelineServices failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.JSON(http.StatusOK, pipes)
+	})
+
+	prefix.GET("/analyticsworkloads", func(c *gin.Context) {
+		wls, errs := s.cs.getOrphanedAnalyticsWorkloads()
+		if len(errs) > 0 {
+			Logger.Error("getOrphanedAnalyticsWorkloads failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.JSON(http.StatusOK, wls)
+	})
+
+	prefix.DELETE("/analyticsworkloads/:name", func(c *gin.Context) {
+		err = s.cs.deleteOrphanedAnalyticsWorkload(c.Param("name"))
+		if err != nil {
+			Logger.Error("deleteOrphanedAnalyticsWorkload failed", "error", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	prefix.DELETE("/analyticsworkloads", func(c *gin.Context) {
+		wls, errs := s.cs.deleteOrphanedAnalyticsWorkloads()
+		if len(errs) > 0 {
+			Logger.Error("deleteOrphanedAnalyticsWorkloads failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.JSON(http.StatusOK, wls)
+	})
+
+	prefix.GET("/pipelinekubeservices", func(c *gin.Context) {
+		services, errs := s.cs.getOrphanedKubeServices(PIPELINE)
+		if len(errs) > 0 {
+			Logger.Error("getOrphanedKubeServices failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.JSON(http.StatusOK, services)
+	})
+
+	prefix.DELETE("/pipelinekubeservices/:id", func(c *gin.Context) {
+		err = s.cs.deleteOrphanedKubeService(PIPELINE, c.Param("id"))
+		if err != nil {
+			Logger.Error("deleteOrphanedKubeService failed", "error", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	prefix.DELETE("/pipelinekubeservices", func(c *gin.Context) {
+		services, errs := s.cs.deleteOrphanedKubeServices(PIPELINE)
+		if len(errs) > 0 {
+			Logger.Error("deleteOrphanedKubeServices failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.JSON(http.StatusOK, services)
+	})
+
+	prefix.GET("/kafkatopics", func(c *gin.Context) {
+		topics, errs := s.cs.getOrphanedKafkaTopics()
+		if len(errs) > 0 {
+			Logger.Error("getOrphanedKafkaTopics failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.JSON(http.StatusOK, topics)
+	})
+
+	prefix.DELETE("/kafkatopics/:name", func(c *gin.Context) {
+		err = s.cs.deleteOrphanedKafkaTopic(c.Param("name"))
+		if err != nil {
+			Logger.Error("deleteOrphanedKafkaTopic failed", "error", err)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	prefix.DELETE("/kafkatopics", func(c *gin.Context) {
+		errs := s.cs.deleteOrphanedKafkaTopics()
+		if len(errs) > 0 {
+			Logger.Error("deleteOrphanedKafkaTopics failed", "error", errs)
+			c.Status(http.StatusInternalServerError)
+			return
+		}
+		c.Status(http.StatusNoContent)
+	})
+
+	if !DebugMode() {
+		err = r.Run(":" + port)
+	} else {
+		err = r.Run("127.0.0.1:" + port)
+	}
+	if err != nil {
+		Logger.Error("could not start api server", "error", err)
 	}
 	return
 }
 
-func parseJWTToken(encodedToken string) (token *jwt.Token, claims Claims) {
-	const PEM_BEGIN = "-----BEGIN PUBLIC KEY-----"
-	const PEM_END = "-----END PUBLIC KEY-----"
-
-	token, _ = jwt.ParseWithClaims(encodedToken, &claims, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-		switch GetEnv("JWT_SIGNING_METHOD", "rsa") {
-		case "rsa":
-			if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-			}
-			key := GetEnv("JWT_SIGNING_KEY", "")
-			if !strings.HasPrefix(key, PEM_BEGIN) {
-				key = PEM_BEGIN + "\n" + key + "\n" + PEM_END
-			}
-			return jwt.ParseRSAPublicKeyFromPEM([]byte(key))
-		case "hmac":
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(GetEnv("JWT_SIGNING_KEY", "")), nil
+func accessMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if checkUserAdmin(c.GetHeader("Authorization")) {
+			c.Next()
 		}
-		return "", nil
-	})
+		c.Status(http.StatusForbidden)
+	}
+}
+
+func checkUserAdmin(tokenString string) (access bool) {
+	access = false
+	if tokenString != "" {
+		claims, err := jwt.Parse(tokenString)
+		if err != nil {
+			err = errors.New("Error parsing token: " + err.Error())
+			return
+		}
+		if StringInSlice("admin", claims.RealmAccess["roles"]) {
+			Logger.Debug("Authenticated user " + claims.Sub)
+			access = true
+		}
+	}
 	return
 }

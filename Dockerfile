@@ -28,6 +28,6 @@ COPY --from=builder /go/src/app/version.txt .
 
 EXPOSE 8000
 
-LABEL org.opencontainers.image.source https://github.com/SENERGY-Platform/analytics-cleanup
+LABEL org.opencontainers.image.source=https://github.com/SENERGY-Platform/analytics-cleanup
 
 ENTRYPOINT ["sh", "set_env.sh"]

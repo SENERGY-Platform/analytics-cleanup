@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -71,15 +72,6 @@ func serviceInWorkloads(service KubeService, workloads []Workload) bool {
 	return false
 }
 
-func influxMeasurementInServings(measurement string, servings []ServingInstance) bool {
-	for _, serving := range servings {
-		if measurement == serving.Measurement {
-			return true
-		}
-	}
-	return false
-}
-
 func GetEnv(key, fallback string) string {
 	value := os.Getenv(key)
 	if len(value) == 0 {
@@ -94,15 +86,6 @@ func ToJson(resp string) map[string]interface{} {
 	return data
 }
 
-func IntInSlice(a int, list []int) bool {
-	for _, b := range list {
-		if b == a {
-			return true
-		}
-	}
-	return false
-}
-
 func StringInSlice(str string, slice []string) bool {
 	for _, s := range slice {
 		if str == s {
@@ -110,12 +93,6 @@ func StringInSlice(str string, slice []string) bool {
 		}
 	}
 	return false
-}
-
-func removeFromSlice(a []struct{}, i int) {
-	copy(a[i:], a[i+1:])     // Shift a[i+1:] left one index.
-	a[len(a)-1] = struct{}{} // Erase last element (write zero value).
-	a = a[:len(a)-1]
 }
 
 var kafkaInternalAnalyticsRx = regexp.MustCompile("(analytics-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}.*-(repartition|changelog))")
@@ -137,4 +114,13 @@ func pipelineExists(topic string, envs []map[string]string) bool {
 		}
 	}
 	return false
+}
+
+func DebugMode() bool {
+	DEBUG, err := strconv.ParseBool(GetEnv("DEBUG", "false"))
+	if err != nil {
+		Logger.Error("Error loading debug value", "error", err)
+		return false
+	}
+	return DEBUG
 }
