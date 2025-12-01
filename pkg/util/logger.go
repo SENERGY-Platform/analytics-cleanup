@@ -31,7 +31,7 @@ var Logger *slog.Logger
 func InitStructLogger(level string) {
 	if Logger == nil {
 		info, ok := debug.ReadBuildInfo()
-		project := "reporting-service"
+		project := "cleanup-service"
 		org := "github.com/SENERGY-Platform"
 		if ok {
 			if parts := strings.Split(info.Main.Path, "/"); len(parts) > 2 {
