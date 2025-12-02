@@ -16,8 +16,6 @@ require (
 	github.com/gin-contrib/cors v1.7.6
 	github.com/gin-contrib/requestid v1.0.5
 	github.com/gin-gonic/gin v1.11.0
-	github.com/golang/protobuf v1.5.4
-	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c
 	github.com/parnurzeal/gorequest v0.3.0
 	github.com/pkg/errors v0.9.1
 )
