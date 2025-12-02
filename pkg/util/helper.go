@@ -14,21 +14,12 @@
  * limitations under the License.
  */
 
-package api
+package util
 
-const (
-	HeaderRequestID = "X-Request-ID"
-	UserIdKey       = "UserId"
-	HeaderAuth      = "Authorization"
-)
-
-const (
-	HealthCheckPath = "/health-check"
-)
-
-const (
-	MessageSomethingWrong = "something went wrong"
-	MessageNotFound       = "not found"
-	MessageForbidden      = "forbidden"
-	MessageConflict       = "already running"
-)
+func ErrorsToStrings(errs []error) []string {
+	out := make([]string, len(errs))
+	for i, err := range errs {
+		out[i] = err.Error()
+	}
+	return out
+}

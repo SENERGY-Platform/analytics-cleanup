@@ -92,11 +92,18 @@ func main() {
 		cfg.Keycloak.Password,
 	)
 
-	kafkaAdmin := apis.NewKafkaAdmin(cfg.KafkaBootstrap)
+	ctx, cf := context.WithCancel(context.Background())
+
+	kafkaAdmin, err := apis.NewKafkaAdmin(cfg.KafkaBootstrap)
+	if err != nil {
+		util.Logger.Error("error creating kafka admin", "error", err)
+		ec = 1
+		return
+	}
 
 	fileLogger := util.NewFileLogger("logs/cleanup.log", "")
 	defer fileLogger.Close()
-	serv := service.NewCleanupService(*keycloak, driver, *pipeline, *fileLogger, kafkaAdmin)
+	serv := service.NewCleanupService(*keycloak, driver, *pipeline, *fileLogger, kafkaAdmin, ctx)
 
 	httpHandler, err := api.CreateServer(cfg, serv)
 	if err != nil {
@@ -111,8 +118,6 @@ func main() {
 	httpServer := &http.Server{
 		Addr:    bindAddress,
 		Handler: httpHandler}
-
-	ctx, cf := context.WithCancel(context.Background())
 
 	go func() {
 		util.Wait(ctx, util.Logger, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -139,11 +144,18 @@ func main() {
 		util.Logger.Info("stopping http server")
 		ctxWt, cf2 := context.WithTimeout(context.Background(), time.Second*5)
 		defer cf2()
-		if err := httpServer.Shutdown(ctxWt); err != nil {
+		if err = httpServer.Shutdown(ctxWt); err != nil {
 			util.Logger.Error("stopping server failed", attributes.ErrorKey, err)
 			ec = 1
 		} else {
 			util.Logger.Info("http server stopped")
+		}
+		util.Logger.Info("stopping kafka client")
+		if err = kafkaAdmin.Close(); err != nil {
+			util.Logger.Error("stopping kafka client failed", attributes.ErrorKey, err)
+			ec = 1
+		} else {
+			util.Logger.Info("kafka client stopped")
 		}
 	}()
 

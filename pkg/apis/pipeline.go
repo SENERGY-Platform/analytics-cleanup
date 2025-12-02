@@ -20,11 +20,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"strconv"
 
 	"github.com/SENERGY-Platform/analytics-cleanup/lib"
+	"github.com/SENERGY-Platform/analytics-cleanup/pkg/util"
 	"github.com/parnurzeal/gorequest"
 	"github.com/pkg/errors"
 
@@ -40,32 +42,38 @@ func NewPipelineService(pipelineUrl string, engineUrl string) *PipelineService {
 	return &PipelineService{pipelineUrl: pipelineUrl, engineUrl: engineUrl}
 }
 
-func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes []pipeModels.Pipeline, errs []error) {
+func (p PipelineService) GetPipelines(userId string, accessToken string) (pipes []pipeModels.Pipeline, err error) {
 	request := gorequest.New()
 	resp, body, errs := request.Get(p.pipelineUrl+"/admin/pipeline").Set("X-UserId", userId).
 		Set("Authorization", "Bearer "+accessToken).End()
 	if len(errs) < 1 {
 		if resp.StatusCode != 200 {
-			return pipes, []error{errors.New("could not access pipeline registry: " + strconv.Itoa(resp.StatusCode) + " " + body)}
+			return pipes, errors.New("could not access pipeline registry: " + strconv.Itoa(resp.StatusCode) + " " + body)
 		}
 		var data pipeModels.PipelinesResponse
-		err := json.Unmarshal([]byte(body), &data)
+		err = json.Unmarshal([]byte(body), &data)
 		if err != nil {
-			errs = append(errs, err)
-		} else {
-			pipes = data.Data
+			return
 		}
+		pipes = data.Data
+	} else {
+		err = errors.New(strings.Join(util.ErrorsToStrings(errs), ","))
 	}
 	return
 }
 
-func (p PipelineService) DeletePipeline(id string, accessToken string) (errs []error) {
+func (p PipelineService) DeletePipeline(id string, accessToken string) (err error) {
 	request := gorequest.New()
 	resp, body, errs := request.Delete(p.pipelineUrl+"/admin/pipeline/"+id).Set("Authorization", "Bearer "+accessToken).End()
-	if len(errs) < 1 {
-		if resp.StatusCode != 200 {
-			errs = append(errs, errors.New("could not access pipeline registry: "+strconv.Itoa(resp.StatusCode)+" "+body))
-		}
+	if len(errs) > 0 {
+		err = errors.New(strings.Join(util.ErrorsToStrings(errs), ","))
+		return
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return lib.NewNotFoundError(errors.New("pipeline " + id + " not found"))
+	}
+	if resp.StatusCode != http.StatusOK {
+		errs = append(errs, errors.New("could not access pipeline registry: "+strconv.Itoa(resp.StatusCode)+" "+body))
 	}
 	return
 }

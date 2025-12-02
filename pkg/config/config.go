@@ -59,9 +59,10 @@ type Config struct {
 
 func New(path string) (*Config, error) {
 	cfg := Config{
-		ServerPort: 8080,
-		Debug:      false,
-		Mode:       "web",
+		ServerPort:     8080,
+		Debug:          false,
+		Mode:           "web",
+		KafkaBootstrap: "localhost:9092",
 		Keycloak: KeycloakConfig{
 			Url:          "http://localhost",
 			ClientId:     "local",

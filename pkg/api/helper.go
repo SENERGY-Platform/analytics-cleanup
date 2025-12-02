@@ -16,19 +16,24 @@
 
 package api
 
-const (
-	HeaderRequestID = "X-Request-ID"
-	UserIdKey       = "UserId"
-	HeaderAuth      = "Authorization"
+import (
+	"errors"
+
+	"github.com/SENERGY-Platform/analytics-cleanup/lib"
 )
 
-const (
-	HealthCheckPath = "/health-check"
-)
-
-const (
-	MessageSomethingWrong = "something went wrong"
-	MessageNotFound       = "not found"
-	MessageForbidden      = "forbidden"
-	MessageConflict       = "already running"
-)
+func handleError(err error) error {
+	var ie *lib.ForbiddenError
+	var ce *lib.ConflictError
+	var ne *lib.NotFoundError
+	if errors.As(err, &ie) {
+		err = lib.NewForbiddenError(errors.New(MessageForbidden))
+	} else if errors.As(err, &ce) {
+		err = lib.NewConflictError(errors.New(MessageConflict))
+	} else if errors.As(err, &ne) {
+		err = lib.NewNotFoundError(errors.New(MessageNotFound))
+	} else {
+		err = lib.NewInternalError(errors.New(MessageSomethingWrong))
+	}
+	return err
+}

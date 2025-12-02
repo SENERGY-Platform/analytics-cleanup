@@ -17,8 +17,11 @@
 package service
 
 import (
-	"fmt"
+	"context"
+	"errors"
 	"log"
+	"sync"
+	"time"
 
 	"github.com/Nerzal/gocloak/v13"
 	"github.com/SENERGY-Platform/analytics-cleanup/lib"
@@ -29,32 +32,45 @@ import (
 )
 
 type CleanupService struct {
-	keycloak   apis.KeycloakService
-	driver     Driver
-	pipeline   apis.PipelineService
-	logger     util.FileLogger
-	kafkaAdmin *apis.KafkaAdmin
+	keycloak      apis.KeycloakService
+	driver        Driver
+	pipeline      apis.PipelineService
+	logger        util.FileLogger
+	kafkaAdmin    *apis.KafkaAdmin
+	ctx           context.Context
+	deleteCancel  context.CancelFunc
+	deleteRunning bool
+	deleteStatus  lib.DeleteStatus
+	deleteMu      sync.Mutex
 }
 
 const DividerString = "++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 
-func NewCleanupService(keycloak apis.KeycloakService, driver Driver, pipeline apis.PipelineService, logger util.FileLogger, kafkaAdmin *apis.KafkaAdmin) *CleanupService {
-	return &CleanupService{keycloak: keycloak, driver: driver, pipeline: pipeline, logger: logger, kafkaAdmin: kafkaAdmin}
+func NewCleanupService(keycloak apis.KeycloakService, driver Driver, pipeline apis.PipelineService, logger util.FileLogger, kafkaAdmin *apis.KafkaAdmin, ctx context.Context) *CleanupService {
+	return &CleanupService{
+		keycloak:   keycloak,
+		driver:     driver,
+		pipeline:   pipeline,
+		logger:     logger,
+		kafkaAdmin: kafkaAdmin,
+		ctx:        ctx,
+	}
 }
 
-func (cs CleanupService) StartCleanupService(recreatePipes bool) {
+func (cs *CleanupService) StartCleanupService(recreatePipes bool) (err error) {
 	/****************************
 	Check analytics pipelines
 	****************************/
 	if recreatePipes {
-		info, err := cs.keycloak.GetUserInfo()
+		var info *gocloak.UserInfo
+		info, err = cs.keycloak.GetUserInfo()
 		if err != nil {
 			return
 		}
 
-		pipes, errs := cs.pipeline.GetPipelines(*info.Sub, cs.keycloak.GetAccessToken())
-		if len(errs) > 0 {
-			fmt.Println(errs[0].Error())
+		var pipes []pipeModels.Pipeline
+		pipes, err = cs.pipeline.GetPipelines(*info.Sub, cs.keycloak.GetAccessToken())
+		if err != nil {
 			return
 		}
 
@@ -65,6 +81,7 @@ func (cs CleanupService) StartCleanupService(recreatePipes bool) {
 			log.Fatal("recreatePipelines failed: " + err.Error())
 		}
 	}
+	return
 	/*
 		cs.deleteOrphanedPipelineServices()
 		cs.deleteOrphanedAnalyticsWorkloads()
@@ -73,49 +90,45 @@ func (cs CleanupService) StartCleanupService(recreatePipes bool) {
 	*/
 }
 
-func (cs CleanupService) GetOrphanedPipelineServices(userId string, authToken string) (orphanedPipelineWorkloads []pipeModels.Pipeline, errs []error) {
-	pipes, errss := cs.pipeline.GetPipelines(userId, authToken)
-	if len(errss) > 0 {
-		errs = append(errs, errss...)
+func (cs *CleanupService) GetOrphanedPipelineServices(userId string, authToken string) (orphanedPipelineWorkloads []pipeModels.Pipeline, err error) {
+	var pipes []pipeModels.Pipeline
+	pipes, err = cs.pipeline.GetPipelines(userId, authToken)
+	if err != nil {
 		return
 	}
-	workloads, e := cs.driver.GetWorkloads(lib.PIPELINE)
-	if e != nil {
-		errs = append(errs, e)
+	workloads, err := cs.driver.GetWorkloads(lib.PIPELINE)
+	if err != nil {
 		return
 	}
-	if len(errs) < 1 {
-		for _, pipe := range pipes {
-			if !pipeInWorkloads(pipe, workloads) {
-				deletePipe := true
+	for _, pipe := range pipes {
+		if !pipeInWorkloads(pipe, workloads) {
+			deletePipe := true
 
-				for _, operator := range pipe.Operators {
-					if operator.DeploymentType == "local" {
-						deletePipe = false
-						break
-					}
-				}
-
-				if deletePipe {
-					orphanedPipelineWorkloads = append(orphanedPipelineWorkloads, pipe)
+			for _, operator := range pipe.Operators {
+				if operator.DeploymentType == "local" {
+					deletePipe = false
+					break
 				}
 			}
-
+			if deletePipe {
+				orphanedPipelineWorkloads = append(orphanedPipelineWorkloads, pipe)
+			}
 		}
+
 	}
 	return
 }
 
-func (cs CleanupService) DeleteOrphanedPipelineService(id string, accessToken string) []error {
+func (cs *CleanupService) DeleteOrphanedPipelineService(id string, accessToken string) error {
 	return cs.pipeline.DeletePipeline(id, accessToken)
 }
 
-func (cs CleanupService) DeleteOrphanedPipelineServices(userId string, authToken string) (pipes []pipeModels.Pipeline, errs []error) {
-	pipes, errs = cs.GetOrphanedPipelineServices(userId, authToken)
-	if len(errs) < 1 {
+func (cs *CleanupService) DeleteOrphanedPipelineServices(userId string, authToken string) (pipes []pipeModels.Pipeline, err error) {
+	pipes, err = cs.GetOrphanedPipelineServices(userId, authToken)
+	if err != nil {
 		for _, pipe := range pipes {
-			errs = cs.pipeline.DeletePipeline(pipe.Id, cs.keycloak.GetAccessToken())
-			if len(errs) > 0 {
+			err = cs.pipeline.DeletePipeline(pipe.Id, cs.keycloak.GetAccessToken())
+			if err != nil {
 				return
 			}
 		}
@@ -123,33 +136,33 @@ func (cs CleanupService) DeleteOrphanedPipelineServices(userId string, authToken
 	return
 }
 
-func (cs CleanupService) GetOrphanedAnalyticsWorkloads(userId string, authToken string) (orphanedAnalyticsWorkloads []lib.Workload, errs []error) {
-	pipes, errs := cs.pipeline.GetPipelines(userId, authToken)
-	workloads, e := cs.driver.GetWorkloads(lib.PIPELINE)
-	if e != nil {
-		errs = append(errs, e)
+func (cs *CleanupService) GetOrphanedAnalyticsWorkloads(userId string, authToken string) (orphanedAnalyticsWorkloads []lib.Workload, err error) {
+	pipes, err := cs.pipeline.GetPipelines(userId, authToken)
+	if err != nil {
+		return
 	}
-	if len(errs) < 1 {
-		for _, workload := range workloads {
-			if !workloadInPipes(workload, pipes) {
-				orphanedAnalyticsWorkloads = append(orphanedAnalyticsWorkloads, workload)
-			}
+	workloads, err := cs.driver.GetWorkloads(lib.PIPELINE)
+	if err != nil {
+		return
+	}
+	for _, workload := range workloads {
+		if !workloadInPipes(workload, pipes) {
+			orphanedAnalyticsWorkloads = append(orphanedAnalyticsWorkloads, workload)
 		}
 	}
 	return
 }
 
-func (cs CleanupService) DeleteOrphanedAnalyticsWorkload(name string) error {
+func (cs *CleanupService) DeleteOrphanedAnalyticsWorkload(name string) error {
 	return cs.driver.DeleteWorkload(name, lib.PIPELINE)
 }
 
-func (cs CleanupService) DeleteOrphanedAnalyticsWorkloads(userId string, authToken string) (workloads []lib.Workload, errs []error) {
-	workloads, errs = cs.GetOrphanedAnalyticsWorkloads(userId, authToken)
-	if len(errs) < 1 {
+func (cs *CleanupService) DeleteOrphanedAnalyticsWorkloads(userId string, authToken string) (workloads []lib.Workload, err error) {
+	workloads, err = cs.GetOrphanedAnalyticsWorkloads(userId, authToken)
+	if err != nil {
 		for _, workload := range workloads {
-			err := cs.driver.DeleteWorkload(workload.Name, lib.PIPELINE)
+			err = cs.driver.DeleteWorkload(workload.Name, lib.PIPELINE)
 			if err != nil {
-				errs = append(errs, err)
 				return
 			}
 		}
@@ -157,15 +170,13 @@ func (cs CleanupService) DeleteOrphanedAnalyticsWorkloads(userId string, authTok
 	return
 }
 
-func (cs CleanupService) GetOrphanedKafkaTopics() (orphanedKafkaTopics []string, errs []error) {
+func (cs *CleanupService) GetOrphanedKafkaTopics() (orphanedKafkaTopics []string, err error) {
 	envs, err := cs.driver.GetWorkloadEnvs(lib.PIPELINE)
 	if err != nil {
-		errs = append(errs, err)
 		return
 	}
 	topics, err := cs.kafkaAdmin.GetTopics()
 	if err != nil {
-		errs = append(errs, err)
 		return
 	}
 	for _, topic := range topics {
@@ -176,63 +187,123 @@ func (cs CleanupService) GetOrphanedKafkaTopics() (orphanedKafkaTopics []string,
 	return
 }
 
-func (cs CleanupService) DeleteOrphanedKafkaTopic(topic string) error {
+func (cs *CleanupService) DeleteOrphanedKafkaTopic(topic string) error {
 	return cs.kafkaAdmin.DeleteTopic(topic)
 }
 
-func (cs CleanupService) DeleteOrphanedKafkaTopics() (errs []error) {
-	topics, errs := cs.GetOrphanedKafkaTopics()
-	if len(errs) > 0 {
+func (cs *CleanupService) DeleteOrphanedKafkaTopics() (err error) {
+	cs.deleteMu.Lock()
+	if cs.deleteRunning {
+		cs.deleteMu.Unlock()
+		return lib.NewConflictError(errors.New("delete task already running"))
+	}
+	cs.deleteRunning = true
+	ctx, cancelDelete := context.WithCancel(cs.ctx)
+	cs.deleteCancel = cancelDelete
+	topics, err := cs.GetOrphanedKafkaTopics()
+	if err != nil {
 		return
 	}
-	for _, topic := range topics {
-		err := cs.kafkaAdmin.DeleteTopic(topic)
-		if err != nil {
-			errs = append(errs, err)
+	cs.deleteStatus = lib.DeleteStatus{
+		Total:     len(topics),
+		Remaining: len(topics),
+		Running:   true,
+		Errors:    nil,
+	}
+	cs.deleteMu.Unlock()
+
+	go func(ctx context.Context) {
+		for index, topic := range topics {
+			var errs []error
+			select {
+			case <-ctx.Done():
+				cs.deleteMu.Lock()
+				cs.deleteStatus.Running = false
+				cs.deleteStatus.Errors = append(cs.deleteStatus.Errors, errors.New("aborted"))
+				cs.deleteRunning = false
+				util.Logger.Info("aborted delete kafka topics")
+				cs.deleteMu.Unlock()
+				return
+			default:
+				err = cs.kafkaAdmin.DeleteTopic(topic)
+				if err != nil {
+					errs = append(errs, err)
+				} else {
+					util.Logger.Info("deleted orphaned kafka topic", "topic", topic)
+				}
+				cs.deleteMu.Lock()
+				cs.deleteStatus.Remaining = len(topics) - (index + 1)
+				cs.deleteStatus.Errors = errs
+				cs.deleteMu.Unlock()
+				// give kafka time to breath
+				time.Sleep(1 * time.Second)
+			}
 		}
+		cs.deleteMu.Lock()
+		cs.deleteStatus.Running = false
+		cs.deleteRunning = false
+		cs.deleteMu.Unlock()
+	}(ctx)
+	return
+}
+
+func (cs *CleanupService) GetDeleteOrphanedKafkaTopicsStatus() lib.DeleteStatus {
+	cs.deleteMu.Lock()
+	defer cs.deleteMu.Unlock()
+	return cs.deleteStatus
+}
+
+func (cs *CleanupService) StopDeleteOrphanedKafkaTopics() (err error) {
+	cs.deleteMu.Lock()
+	cancel := cs.deleteCancel
+	cs.deleteMu.Unlock()
+
+	if cancel != nil {
+		cancel()
+		util.Logger.Debug("stopped delete orphaned kafka topics")
+	} else {
+		err = lib.NewConflictError(errors.New("deleteOrphanedKafkaTopics not running"))
 	}
 	return
 }
 
-func (cs CleanupService) GetOrphanedKubeServices(collection string) (orphanedServices []lib.KubeService, errs []error) {
+func (cs *CleanupService) GetOrphanedKubeServices(collection string) (orphanedServices []lib.KubeService, err error) {
 	workloads, err := cs.driver.GetWorkloads(collection)
 	if err != nil {
-		errs = append(errs, err)
+		return
 	}
 	services, err := cs.driver.GetServices(collection)
 	if err != nil {
-		errs = append(errs, err)
+		return
 	}
-	if len(errs) < 1 {
-		for _, service := range services {
-			if !serviceInWorkloads(service, workloads) {
-				orphanedServices = append(orphanedServices, service)
-			}
+	for _, service := range services {
+		if !serviceInWorkloads(service, workloads) {
+			orphanedServices = append(orphanedServices, service)
 		}
 	}
 	return
 }
 
-func (cs CleanupService) DeleteOrphanedKubeService(collection string, id string) error {
+func (cs *CleanupService) DeleteOrphanedKubeService(collection string, id string) error {
 	return cs.driver.DeleteService(id, collection)
 }
 
-func (cs CleanupService) DeleteOrphanedKubeServices(collection string) (deletedKubeServices []lib.KubeService, errs []error) {
-	services, errs := cs.GetOrphanedKubeServices(collection)
-	if len(errs) < 1 {
-		for _, service := range services {
-			err := cs.driver.DeleteService(service.Id, collection)
-			if err != nil {
-				errs = append(errs, err)
-			} else {
-				deletedKubeServices = append(deletedKubeServices, service)
-			}
+func (cs *CleanupService) DeleteOrphanedKubeServices(collection string) (deletedKubeServices []lib.KubeService, err error) {
+	services, err := cs.GetOrphanedKubeServices(collection)
+	if err != nil {
+		return
+	}
+	for _, service := range services {
+		err = cs.driver.DeleteService(service.Id, collection)
+		if err != nil {
+			return
 		}
+		deletedKubeServices = append(deletedKubeServices, service)
 	}
 	return
 }
 
-func (cs CleanupService) recreatePipelines(pipelines []pipeModels.Pipeline, workloads []lib.Workload) error {
+func (cs *CleanupService) recreatePipelines(pipelines []pipeModels.Pipeline, workloads []lib.Workload) error {
 	cs.logger.Print("**************** Recreate Pipelines *********************")
 	for _, pipeline := range pipelines {
 		if !pipeInWorkloads(pipeline, workloads) {
@@ -252,7 +323,7 @@ func (cs CleanupService) recreatePipelines(pipelines []pipeModels.Pipeline, work
 	return nil
 }
 
-func (cs CleanupService) _getKeycloakUserById(id string) (user *gocloak.User) {
+func (cs *CleanupService) _getKeycloakUserById(id string) (user *gocloak.User) {
 	user, err := cs.keycloak.GetUserByID(id)
 	if err != nil {
 		log.Fatal("GetUserByID failed:" + err.Error())
@@ -263,7 +334,7 @@ func (cs CleanupService) _getKeycloakUserById(id string) (user *gocloak.User) {
 	return
 }
 
-func (cs CleanupService) _logPrint(vars ...string) {
+func (cs *CleanupService) _logPrint(vars ...string) {
 	cs.logger.Print(DividerString)
 	for _, v := range vars {
 		cs.logger.Print(v)

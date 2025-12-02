@@ -111,3 +111,10 @@ type OpenIdToken struct {
 	TokenType        string    `json:"token_type"`
 	RequestTime      time.Time `json:"-"`
 }
+
+type DeleteStatus struct {
+	Total     int
+	Remaining int
+	Running   bool
+	Errors    []error
+}

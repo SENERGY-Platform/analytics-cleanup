@@ -21,12 +21,12 @@ import (
 	gin_mw "github.com/SENERGY-Platform/gin-middleware"
 )
 
-var routes = gin_mw.Routes[service.CleanupService]{
+var routes = gin_mw.Routes[*service.CleanupService]{
 	getHealthCheckH,
 	getSwaggerDocH,
 }
 
-var routesAuth = gin_mw.Routes[service.CleanupService]{
+var routesAuth = gin_mw.Routes[*service.CleanupService]{
 	getOrphanedPipelineServices,
 	deleteOrphanedPipelineService,
 	deleteOrphanedPipelineServices,
@@ -39,4 +39,6 @@ var routesAuth = gin_mw.Routes[service.CleanupService]{
 	getOrphanedKafkaTopics,
 	deleteOrphanedKafkaTopic,
 	deleteOrphanedKafkaTopics,
+	stopDeleteOrphanedKafkaTopics,
+	getDeleteOrphanedKafkaTopicsStatus,
 }

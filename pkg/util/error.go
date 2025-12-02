@@ -14,21 +14,35 @@
  * limitations under the License.
  */
 
-package api
+package util
 
-const (
-	HeaderRequestID = "X-Request-ID"
-	UserIdKey       = "UserId"
-	HeaderAuth      = "Authorization"
+import (
+	"errors"
+	"net/http"
+
+	"github.com/SENERGY-Platform/analytics-cleanup/lib"
 )
 
-const (
-	HealthCheckPath = "/health-check"
-)
-
-const (
-	MessageSomethingWrong = "something went wrong"
-	MessageNotFound       = "not found"
-	MessageForbidden      = "forbidden"
-	MessageConflict       = "already running"
-)
+func GetStatusCode(err error) int {
+	var nfe *lib.NotFoundError
+	if errors.As(err, &nfe) {
+		return http.StatusNotFound
+	}
+	var pe *lib.InputError
+	if errors.As(err, &pe) {
+		return http.StatusBadRequest
+	}
+	var ie *lib.InternalError
+	if errors.As(err, &ie) {
+		return http.StatusInternalServerError
+	}
+	var fe *lib.ForbiddenError
+	if errors.As(err, &fe) {
+		return http.StatusForbidden
+	}
+	var ce *lib.ConflictError
+	if errors.As(err, &ce) {
+		return http.StatusConflict
+	}
+	return 0
+}

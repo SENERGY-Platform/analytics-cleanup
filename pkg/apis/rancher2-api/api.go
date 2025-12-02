@@ -146,6 +146,9 @@ func (r *Rancher2) DeleteWorkload(workloadId string, collection string) (err err
 	}
 	resp, body, e := request.End()
 	if resp.StatusCode != http.StatusNoContent {
+		if resp.StatusCode == http.StatusNotFound {
+			return lib.NewNotFoundError(errors.New(body))
+		}
 		err = errors.New("could not delete operator: " + body)
 		return
 	}

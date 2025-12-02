@@ -12,25 +12,460 @@
     },
     "basePath": "/",
     "paths": {
-        "/pipeservices": {
+        "/analyticsworkloads": {
             "get": {
-                "description": "Gets all orphaned pipe services",
+                "description": "Gets all orphaned workloads",
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Get all orphaned pipe service",
+                "tags": [
+                    "workloads"
+                ],
+                "summary": "Get all orphaned workloads",
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/lib.Pipeline"
+                                "$ref": "#/definitions/lib.Workload"
                             }
                         }
                     },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
                     "500": {
-                        "description": "Internal Server Error",
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes all orphaned workloads",
+                "tags": [
+                    "workloads"
+                ],
+                "summary": "Delete orphaned workloads",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/analyticsworkloads/{name}": {
+            "delete": {
+                "description": "Deletes an orphaned workload by name",
+                "tags": [
+                    "workloads"
+                ],
+                "summary": "Delete orphaned workload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Workload name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/kafkatopics": {
+            "get": {
+                "description": "Gets all orphaned kafka topics",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "kafka-topics"
+                ],
+                "summary": "Get all orphaned kafka topics",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes all orphaned kafka topics",
+                "tags": [
+                    "kafka-topics"
+                ],
+                "summary": "Delete orphaned kafka topics",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "already running",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/kafkatopics/status": {
+            "get": {
+                "description": "Get the status of kafka topic deletion",
+                "tags": [
+                    "kafka-topics"
+                ],
+                "summary": "Get kafka topic deletion status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/lib.DeleteStatus"
+                        }
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/kafkatopics/stop": {
+            "post": {
+                "description": "Stops the deletion process of kafka topics",
+                "tags": [
+                    "kafka-topics"
+                ],
+                "summary": "Stop kafka topic deletion",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/kafkatopics/{name}": {
+            "delete": {
+                "description": "Deletes an orphaned kafka topic by name",
+                "tags": [
+                    "kafka-topics"
+                ],
+                "summary": "Delete orphaned kafka topic",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Kafka Topic name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/pipelinekubeservices": {
+            "get": {
+                "description": "Gets all orphaned kube services",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "kube-services"
+                ],
+                "summary": "Get all orphaned kube services",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/lib.KubeService"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes all orphaned kube services",
+                "tags": [
+                    "kube-services"
+                ],
+                "summary": "Delete orphaned kube services",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/pipelinekubeservices/{name}": {
+            "delete": {
+                "description": "Deletes an orphaned kube service by name",
+                "tags": [
+                    "kube-services"
+                ],
+                "summary": "Delete orphaned kube service",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Kube Service name",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/pipeservices": {
+            "get": {
+                "description": "Gets all orphaned pipe services",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "pipeline-services"
+                ],
+                "summary": "Get all orphaned pipe services",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_SENERGY-Platform_analytics-cleanup_lib.Pipeline"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Deletes all orphaned pipeline services",
+                "tags": [
+                    "pipeline-services"
+                ],
+                "summary": "Delete orphaned pipeline services",
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/pipeservices/{id}": {
+            "delete": {
+                "description": "Deletes an orphaned pipeline service by ID",
+                "tags": [
+                    "pipeline-services"
+                ],
+                "summary": "Delete orphaned pipeline service",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Pipeline Service ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "403": {
+                        "description": "forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "not found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "something went wrong",
                         "schema": {
                             "type": "string"
                         }
@@ -40,111 +475,7 @@
         }
     },
     "definitions": {
-        "lib.InputSelection": {
-            "type": "object",
-            "properties": {
-                "aspectId": {
-                    "type": "string"
-                },
-                "characteristicIds": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "functionId": {
-                    "type": "string"
-                },
-                "inputName": {
-                    "type": "string"
-                },
-                "selectableId": {
-                    "type": "string"
-                }
-            }
-        },
-        "lib.InputTopic": {
-            "type": "object",
-            "properties": {
-                "filterType": {
-                    "type": "string"
-                },
-                "filterValue": {
-                    "type": "string"
-                },
-                "mappings": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/lib.Mapping"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "lib.Mapping": {
-            "type": "object",
-            "properties": {
-                "dest": {
-                    "type": "string"
-                },
-                "source": {
-                    "type": "string"
-                }
-            }
-        },
-        "lib.Operator": {
-            "type": "object",
-            "properties": {
-                "applicationId": {
-                    "type": "string"
-                },
-                "config": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "string"
-                    }
-                },
-                "cost": {
-                    "type": "integer"
-                },
-                "deploymentType": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "imageId": {
-                    "type": "string"
-                },
-                "inputSelections": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/lib.InputSelection"
-                    }
-                },
-                "inputTopics": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/lib.InputTopic"
-                    }
-                },
-                "name": {
-                    "type": "string"
-                },
-                "operatorId": {
-                    "type": "string"
-                },
-                "outputTopic": {
-                    "type": "string"
-                },
-                "persistData": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "lib.Pipeline": {
+        "github_com_SENERGY-Platform_analytics-cleanup_lib.Pipeline": {
             "type": "object",
             "properties": {
                 "consumeAllMessages": {
@@ -188,6 +519,207 @@
                 },
                 "windowTime": {
                     "type": "integer"
+                }
+            }
+        },
+        "lib.DeleteStatus": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "type": "array",
+                    "items": {}
+                },
+                "remaining": {
+                    "type": "integer"
+                },
+                "running": {
+                    "type": "boolean"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "lib.DownstreamConfig": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "instanceID": {
+                    "type": "string"
+                },
+                "serviceID": {
+                    "type": "string"
+                }
+            }
+        },
+        "lib.InputSelection": {
+            "type": "object",
+            "properties": {
+                "aspectId": {
+                    "type": "string"
+                },
+                "characteristicIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "functionId": {
+                    "type": "string"
+                },
+                "inputName": {
+                    "description": "references mapping name",
+                    "type": "string"
+                },
+                "selectableId": {
+                    "description": "either device or group. can be used for SNRGY-1172, needed to update devices in group",
+                    "type": "string"
+                }
+            }
+        },
+        "lib.InputTopic": {
+            "type": "object",
+            "properties": {
+                "filterType": {
+                    "type": "string"
+                },
+                "filterValue": {
+                    "type": "string"
+                },
+                "filterValue2": {
+                    "type": "string"
+                },
+                "mappings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lib.Mapping"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "lib.KubeService": {
+            "type": "object",
+            "properties": {
+                "baseType": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "targetWorkloadIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "lib.Mapping": {
+            "type": "object",
+            "properties": {
+                "dest": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "lib.Operator": {
+            "type": "object",
+            "properties": {
+                "applicationId": {
+                    "type": "string"
+                },
+                "config": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "cost": {
+                    "type": "integer"
+                },
+                "deploymentType": {
+                    "type": "string"
+                },
+                "downstream": {
+                    "$ref": "#/definitions/lib.DownstreamConfig"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "imageId": {
+                    "type": "string"
+                },
+                "inputSelections": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lib.InputSelection"
+                    }
+                },
+                "inputTopics": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/lib.InputTopic"
+                    }
+                },
+                "name": {
+                    "type": "string"
+                },
+                "operatorId": {
+                    "type": "string"
+                },
+                "outputTopic": {
+                    "type": "string"
+                },
+                "persistData": {
+                    "type": "boolean"
+                },
+                "upstream": {
+                    "$ref": "#/definitions/lib.UpstreamConfig"
+                }
+            }
+        },
+        "lib.UpstreamConfig": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "lib.Workload": {
+            "type": "object",
+            "properties": {
+                "environment": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "imageUuid": {
+                    "type": "string"
+                },
+                "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         }

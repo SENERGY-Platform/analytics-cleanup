@@ -17,36 +17,50 @@
 package apis
 
 import (
-	"github.com/IBM/sarama"
+	"errors"
 	"time"
+
+	"github.com/IBM/sarama"
+	"github.com/SENERGY-Platform/analytics-cleanup/lib"
 )
 
 type KafkaAdmin struct {
 	kafkaBootstrap string
+	clusterAdmin   sarama.ClusterAdmin
 }
 
-func NewKafkaAdmin(kafkaBootstrap string) *KafkaAdmin {
-	return &KafkaAdmin{
-		kafkaBootstrap: kafkaBootstrap,
-	}
-}
-
-func (this *KafkaAdmin) DeleteTopic(name string) (err error) {
-	admin, err := this.getAdmin()
-	if err != nil {
-		return err
-	}
-	defer admin.Close()
-	return admin.DeleteTopic(name)
-}
-
-func (this *KafkaAdmin) GetTopics() (topics []string, err error) {
-	admin, err := this.getAdmin()
+func NewKafkaAdmin(kafkaBootstrap string) (*KafkaAdmin, error) {
+	conf := sarama.NewConfig()
+	conf.Admin.Timeout = 25 * time.Second
+	admin, err := sarama.NewClusterAdmin([]string{kafkaBootstrap}, conf)
 	if err != nil {
 		return nil, err
 	}
-	defer admin.Close()
-	topicInfos, err := admin.ListTopics()
+	return &KafkaAdmin{
+		kafkaBootstrap: kafkaBootstrap,
+		clusterAdmin:   admin,
+	}, err
+}
+
+func (k *KafkaAdmin) Close() (err error) {
+	if k.clusterAdmin != nil {
+		defer func(admin sarama.ClusterAdmin) {
+			err = admin.Close()
+		}(k.clusterAdmin)
+	}
+	return
+}
+
+func (k *KafkaAdmin) DeleteTopic(name string) (err error) {
+	err = k.clusterAdmin.DeleteTopic(name)
+	if errors.Is(err, sarama.ErrUnknownTopicOrPartition) {
+		err = lib.NewNotFoundError(err)
+	}
+	return
+}
+
+func (k *KafkaAdmin) GetTopics() (topics []string, err error) {
+	topicInfos, err := k.clusterAdmin.ListTopics()
 	if err != nil {
 		return nil, err
 	}
@@ -54,10 +68,4 @@ func (this *KafkaAdmin) GetTopics() (topics []string, err error) {
 		topics = append(topics, k)
 	}
 	return topics, nil
-}
-
-func (this *KafkaAdmin) getAdmin() (admin sarama.ClusterAdmin, err error) {
-	sconfig := sarama.NewConfig()
-	sconfig.Admin.Timeout = 25 * time.Second
-	return sarama.NewClusterAdmin([]string{this.kafkaBootstrap}, sconfig)
 }

@@ -20,12 +20,9 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/SENERGY-Platform/analytics-cleanup/lib"
-	"github.com/SENERGY-Platform/analytics-cleanup/pkg/util"
-
 	pipeModels "github.com/SENERGY-Platform/analytics-pipeline/lib"
 )
 
@@ -101,13 +98,4 @@ func pipelineExists(topic string, envs []map[string]string) bool {
 		}
 	}
 	return false
-}
-
-func DebugMode() bool {
-	DEBUG, err := strconv.ParseBool(GetEnv("DEBUG", "false"))
-	if err != nil {
-		util.Logger.Error("Error loading debug value", "error", err)
-		return false
-	}
-	return DEBUG
 }

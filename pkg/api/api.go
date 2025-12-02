@@ -68,15 +68,13 @@ func CreateServer(cfg *config.Config, cs *service.CleanupService) (r *gin.Engine
 	)
 	middleware = append(middleware,
 		requestid.New(requestid.WithCustomHeaderStrKey(HeaderRequestID)),
-		gin_mw.ErrorHandler(func(err error) int {
-			return 0
-		}, ", "),
+		gin_mw.ErrorHandler(util.GetStatusCode, ", "),
 		gin_mw.StructRecoveryHandler(util.Logger, gin_mw.DefaultRecoveryFunc),
 	)
 	r.Use(middleware...)
 	r.UseRawPath = true
 	prefix := r.Group(cfg.URLPrefix)
-	setRoutes, err := routes.Set(*cs, prefix)
+	setRoutes, err := routes.Set(cs, prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +82,7 @@ func CreateServer(cfg *config.Config, cs *service.CleanupService) (r *gin.Engine
 		util.Logger.Debug("http route", attributes.MethodKey, route[0], attributes.PathKey, route[1])
 	}
 	prefix.Use(AuthMiddleware())
-	setRoutes, err = routesAuth.Set(*cs, prefix)
+	setRoutes, err = routesAuth.Set(cs, prefix)
 	if err != nil {
 		return nil, err
 	}
