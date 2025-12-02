@@ -59,7 +59,7 @@ type Config struct {
 
 func New(path string) (*Config, error) {
 	cfg := Config{
-		ServerPort:     8080,
+		ServerPort:     8000,
 		Debug:          false,
 		Mode:           "web",
 		KafkaBootstrap: "localhost:9092",
