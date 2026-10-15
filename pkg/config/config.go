@@ -18,6 +18,7 @@ package config
 
 import (
 	sb_config_hdl "github.com/SENERGY-Platform/go-service-base/config-hdl"
+	sb_config_types "github.com/SENERGY-Platform/go-service-base/config-hdl/types"
 )
 
 type LoggerConfig struct {
@@ -25,21 +26,21 @@ type LoggerConfig struct {
 }
 
 type KeycloakConfig struct {
-	Url          string `json:"url" env_var:"KEYCLOAK_URL"`
-	Realm        string `json:"realm" env_var:"KEYCLOAK_REALM"`
-	ClientId     string `json:"client_id" env_var:"KEYCLOAK_CLIENT_ID"`
-	ClientSecret string `json:"client_secret" env_var:"KEYCLOAK_CLIENT_SECRET"`
-	User         string `json:"user" env_var:"KEYCLOAK_USER"`
-	Password     string `json:"password" env_var:"KEYCLOAK_PASSWORD"`
+	Url          string                 `json:"url" env_var:"KEYCLOAK_URL"`
+	Realm        string                 `json:"realm" env_var:"KEYCLOAK_REALM"`
+	ClientId     string                 `json:"client_id" env_var:"KEYCLOAK_CLIENT_ID"`
+	ClientSecret sb_config_types.Secret `json:"client_secret" env_var:"KEYCLOAK_CLIENT_SECRET"`
+	User         string                 `json:"user" env_var:"KEYCLOAK_USER"`
+	Password     sb_config_types.Secret `json:"password" env_var:"KEYCLOAK_PASSWORD"`
 }
 
 type Rancher2Config struct {
-	Endpoint            string `json:"endpoint" env_var:"RANCHER2_ENDPOINT"`
-	AccessKey           string `json:"access_key" env_var:"RANCHER2_ACCESS_KEY"`
-	SecretKey           string `json:"secret_key" env_var:"RANCHER2_SECRET_KEY"`
-	PipelineProjectId   string `json:"pipe_project_id" env_var:"RANCHER2_PIPELINE_PROJECT_ID"`
-	PipelineNamespaceId string `json:"pipe_namespace_id" env_var:"RANCHER2_PIPELINE_NAMESPACE_ID"`
-	ServingProjectId    string `json:"serv_project_id" env_var:"RANCHER2_SERVING_PROJECT_ID"`
+	Endpoint            string                 `json:"endpoint" env_var:"RANCHER2_ENDPOINT"`
+	AccessKey           sb_config_types.Secret `json:"access_key" env_var:"RANCHER2_ACCESS_KEY"`
+	SecretKey           sb_config_types.Secret `json:"secret_key" env_var:"RANCHER2_SECRET_KEY"`
+	PipelineProjectId   string                 `json:"pipe_project_id" env_var:"RANCHER2_PIPELINE_PROJECT_ID"`
+	PipelineNamespaceId string                 `json:"pipe_namespace_id" env_var:"RANCHER2_PIPELINE_NAMESPACE_ID"`
+	ServingProjectId    string                 `json:"serv_project_id" env_var:"RANCHER2_SERVING_PROJECT_ID"`
 }
 
 type Config struct {

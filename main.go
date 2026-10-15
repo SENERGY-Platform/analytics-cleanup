@@ -73,8 +73,8 @@ func main() {
 	case "rancher2":
 		driver = rancher2_api.NewRancher2(
 			cfg.Rancher2Config.Endpoint,
-			cfg.Rancher2Config.AccessKey,
-			cfg.Rancher2Config.SecretKey,
+			cfg.Rancher2Config.AccessKey.Value(),
+			cfg.Rancher2Config.SecretKey.Value(),
 			"",
 			cfg.Rancher2Config.ServingProjectId,
 			cfg.Rancher2Config.PipelineNamespaceId,
@@ -86,10 +86,10 @@ func main() {
 	keycloak := apis.NewKeycloakService(
 		cfg.Keycloak.Url,
 		cfg.Keycloak.ClientId,
-		cfg.Keycloak.ClientSecret,
+		cfg.Keycloak.ClientSecret.Value(),
 		cfg.Keycloak.Realm,
 		cfg.Keycloak.User,
-		cfg.Keycloak.Password,
+		cfg.Keycloak.Password.Value(),
 	)
 
 	ctx, cf := context.WithCancel(context.Background())
