@@ -7,7 +7,7 @@ require (
 	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/SENERGY-Platform/analytics-flow-engine/lib v0.0.0-20251112135741-3edca6fddbc1
 	github.com/SENERGY-Platform/analytics-pipeline v0.0.40
-	github.com/SENERGY-Platform/gin-middleware v0.14.1
+	github.com/SENERGY-Platform/gin-middleware v0.14.2
 	github.com/SENERGY-Platform/go-service-base/config-hdl v1.2.0
 	github.com/SENERGY-Platform/go-service-base/srv-info-hdl v0.2.0
 	github.com/SENERGY-Platform/go-service-base/struct-logger v0.6.0
