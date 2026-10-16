@@ -31,7 +31,7 @@ type KeycloakConfig struct {
 	ClientId     string                 `json:"client_id" env_var:"KEYCLOAK_CLIENT_ID"`
 	ClientSecret sb_config_types.Secret `json:"client_secret" env_var:"KEYCLOAK_CLIENT_SECRET"`
 	User         string                 `json:"user" env_var:"KEYCLOAK_USER"`
-	Password     sb_config_types.Secret `json:"password" env_var:"KEYCLOAK_PASSWORD"`
+	Password     sb_config_types.Secret `json:"password" env_var:"KEYCLOAK_PW"`
 }
 
 type Rancher2Config struct {

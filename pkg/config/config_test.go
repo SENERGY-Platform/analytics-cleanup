@@ -27,7 +27,7 @@ import (
 
 var testSecrets = map[string]string{
 	"KEYCLOAK_CLIENT_SECRET": "test-client-secret-1",
-	"KEYCLOAK_PASSWORD":      "test-keycloak-password-2",
+	"KEYCLOAK_PW":            "test-keycloak-password-2",
 	"RANCHER2_ACCESS_KEY":    "test-access-key-3",
 	"RANCHER2_SECRET_KEY":    "test-secret-key-4",
 }
@@ -44,7 +44,7 @@ func assertMasked(t *testing.T, cfg *Config) {
 	if got := cfg.Keycloak.ClientSecret.Value(); got != testSecrets["KEYCLOAK_CLIENT_SECRET"] {
 		t.Errorf("client secret not usable: %q", got)
 	}
-	if got := cfg.Keycloak.Password.Value(); got != testSecrets["KEYCLOAK_PASSWORD"] {
+	if got := cfg.Keycloak.Password.Value(); got != testSecrets["KEYCLOAK_PW"] {
 		t.Errorf("keycloak password not usable: %q", got)
 	}
 	if got := cfg.Rancher2Config.AccessKey.Value(); got != testSecrets["RANCHER2_ACCESS_KEY"] {

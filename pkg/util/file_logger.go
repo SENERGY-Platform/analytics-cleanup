@@ -44,6 +44,6 @@ func (l FileLogger) Close() {
 }
 
 func (l FileLogger) Print(v ...interface{}) {
-	log.Println(v)
-	l.logger.Println(v)
+	log.Println(v...)
+	l.logger.Println(v...)
 }
